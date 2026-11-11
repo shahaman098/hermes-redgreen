@@ -1,7 +1,16 @@
 # Typeform answers
 
-Form: https://form.typeform.com/to/FwJLvOln
+Form: https://form.typeform.com/to/FwJLvOln  
 Deadline: 5PM EST, 11 Nov 2026 (22:00 GMT).
+
+## Copy-paste (last step)
+
+| Field | Value |
+| --- | --- |
+| Plugin title | `RedGreen` |
+| Catalog PR | https://github.com/NousResearch/hermes-agent/pull/153734 |
+| Demo on X | https://x.com/KrisKumarS26166/status/2120597112388047027 |
+| Repo | https://github.com/shahaman098/hermes-redgreen |
 
 The form starts with:
 
