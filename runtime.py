@@ -271,8 +271,8 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
 
     if verdict.status in {"unproven_no_test", "unproven_weak"}:
         lines.append(
-            "Write a test that fails on the pre-change tree and passes with your fix, "
-            "run it, then finish. RedGreen re-runs both sides itself."
+            "Write a test that fails without the fix and passes with it, then run it. "
+            "RedGreen re-runs both sides."
         )
     elif verdict.status == "unproven_tamper":
         lines.append(
