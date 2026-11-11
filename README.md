@@ -12,7 +12,9 @@ trust it. It re-runs the command itself, twice.
 
 ![RedGreen certificate](assets/certificate.png)
 
-[88-second demo video](redgreen-demo.mp4) · [banner](assets/banner.png)
+[88-second demo video](redgreen-demo.mp4) · [X post](https://x.com/KrisKumarS26166/status/2120597112388047027) · [catalog PR](https://github.com/NousResearch/hermes-agent/pull/153734) · [banner](assets/banner.png)
+
+Nous Hermes Agent Plugin Hackathon · submit at [Typeform](https://form.typeform.com/to/FwJLvOln) (PR + X link above).
 
 ## The problem: a passing suite is not proof
 

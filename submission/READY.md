@@ -12,8 +12,8 @@ is parked at `../hermes-falsify-parked`; nothing from it is submitted.
 ## Still on you, in order
 1. ~~Commit and push (pin `339fde5`)~~ done.
 2. Catalog PR #153734: bump on fork branch `catalog-redgreen` (yaml + PR body from `submission/PR_BODY_UPDATE.md`) — agent pushes fork; you confirm CI.
-3. Post on X with the video and the text in `submission/X_POST.md`.
-4. Typeform https://form.typeform.com/to/FwJLvOln: title `RedGreen`, description from `submission/TYPEFORM.md`, PR link, X post URL, your email, Submit.
+3. ~~Post on X~~ done: https://x.com/KrisKumarS26166/status/2120597112388047027
+4. Typeform https://form.typeform.com/to/FwJLvOln: title `RedGreen`, description from `submission/TYPEFORM.md`, PR https://github.com/NousResearch/hermes-agent/pull/153734, X URL above, your email, **Submit** (you click).
 5. Rotate the ElevenLabs key (used again for this render).
 
 Fallback: the old pin `c4b162c` is still a valid entry; it just lacks the guard, ledger and card shown in the video.

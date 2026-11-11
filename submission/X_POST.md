@@ -1,6 +1,8 @@
 # X post
 
-Attach: `~/Desktop/redgreen-demo.mp4` (88 s, under the 90 s limit). X is not logged in in Chrome; sign in first.
+**Posted:** https://x.com/KrisKumarS26166/status/2120597112388047027
+
+Attach: `~/Desktop/redgreen-demo.mp4` (88 s, under the 90 s limit).
 
 ## Main post (259 characters, attach the video)
 
