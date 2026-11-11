@@ -6,6 +6,7 @@ description: >-
   with the new tests overlaid. Only red without the fix and green with it counts.
 author: shahaman098
 license: MIT
+requires_hermes: ">=0.18.0"
 homepage: https://github.com/shahaman098/hermes-falsify
 tags: [testing, verification, git, reliability]
 provides_tools:

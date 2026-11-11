@@ -46,6 +46,42 @@ def _command(raw_args: str = "") -> str:
     return "\n".join(lines)
 
 
+def _setup_cli(parser) -> None:
+    parser.add_argument(
+        "action",
+        nargs="?",
+        default="status",
+        choices=["status", "open", "explain"],
+        help="status (default), open the latest certificate, or explain the rule",
+    )
+
+
+def _handle_cli(args) -> int:
+    action = getattr(args, "action", "status")
+    if action == "explain":
+        print(tools.EXPLAIN)
+        return 0
+    if action == "open":
+        latest = tools.runtime.STORE.latest_certificate()
+        if latest is None:
+            print("Falsify: no certificates yet.")
+            return 1
+        print(latest)
+        tools._open_path(latest)
+        return 0
+    rows = tools.runtime.STORE.list_certificates(limit=20)
+    if not rows:
+        print("Falsify: no certificates yet.")
+        return 0
+    print(f"{'VERDICT':<14} {'COMMAND':<40} CERTIFICATE")
+    for row in rows:
+        print(
+            f"{str(row.get('status') or '?').upper():<14} "
+            f"{str(row.get('command') or '')[:38]:<40} {row.get('certificate')}"
+        )
+    return 0
+
+
 def register(ctx) -> None:
     for name, schema, handler in TOOLS:
         ctx.register_tool(
@@ -65,6 +101,14 @@ def register(ctx) -> None:
         description="Show the last Falsify proof; /falsify explain for the rule",
     )
 
+    ctx.register_cli_command(
+        "falsify",
+        help="Inspect Falsify proof-of-fix certificates",
+        setup_fn=_setup_cli,
+        handler_fn=_handle_cli,
+        description="List, open or explain the negative-control proofs Falsify minted.",
+    )
+
     skill = Path(__file__).resolve().parent / "skills" / "negative-control" / "SKILL.md"
     if skill.exists():
         try:
@@ -73,5 +117,5 @@ def register(ctx) -> None:
                 skill,
                 description="Reproduce a bug, make a test fail without the fix, then prove it.",
             )
-        except Exception:  # noqa: BLE001 - a skill is optional
+        except Exception:  # noqa: BLE001, S110 - a skill is optional
             pass

@@ -412,6 +412,7 @@ def _git(
         text=True,
         timeout=timeout,
         env=env,
+        check=False,
     )
 
 
@@ -452,7 +453,7 @@ def capture_baseline(repo: Path) -> tuple[str, str]:
         env = {"GIT_INDEX_FILE": index_path}
         if parent:
             _git(repo, "read-tree", parent, extra_env=env)
-        added = _git(repo, "add", "-A", extra_env=env, timeout=120.0)
+        added = _git(repo, "add", "-A", "--", ".", *SECRET_PATHSPECS, extra_env=env, timeout=120.0)
         if added.returncode != 0:
             return (parent, "head") if parent else ("", "none")
         tree = _git(repo, "write-tree", extra_env=env)
@@ -478,6 +479,27 @@ def changed_paths(repo: Path, baseline: str) -> list[str]:
         paths.extend(line.strip() for line in untracked.stdout.splitlines() if line.strip())
     return list(dict.fromkeys(paths))
 
+
+SECRET_PATHSPECS = (
+    ":(exclude,glob)**/.env",
+    ":(exclude,glob)**/.env.*",
+    ":(exclude,glob)**/*.pem",
+    ":(exclude,glob)**/*.key",
+    ":(exclude,glob)**/*.p12",
+    ":(exclude,glob)**/*.pfx",
+    ":(exclude,glob)**/id_rsa*",
+    ":(exclude,glob)**/id_ed25519*",
+    ":(exclude,glob)**/.netrc",
+    ":(exclude,glob)**/.npmrc",
+    ":(exclude,glob)**/.pypirc",
+    ":(exclude,glob)**/auth.json",
+    ":(exclude,glob)**/credentials.json",
+)
+
+SECRET_NAME_RE = re.compile(
+    r"(?:^|/)(?:\.env(?:\..*)?|.*\.(?:pem|key|p12|pfx)|id_rsa.*|id_ed25519.*|"
+    r"\.netrc|\.npmrc|\.pypirc|auth\.json|credentials\.json)$"
+)
 
 _CACHE_DIR_RE = re.compile(
     r"(?:^|/)(?:__pycache__|\.pytest_cache|\.mypy_cache|\.ruff_cache|node_modules|"
@@ -567,6 +589,7 @@ def run_command(
         proc = subprocess.run(
             command,
             shell=True,
+            check=False,
             cwd=str(cwd),
             capture_output=True,
             text=True,
@@ -968,7 +991,7 @@ def tree_signature(repo: Path) -> str:
         untracked = _git(repo, "ls-files", "--others", "--exclude-standard")
         if untracked.returncode == 0:
             for relative in untracked.stdout.splitlines()[:200]:
-                if _CACHE_DIR_RE.search(relative):
+                if _CACHE_DIR_RE.search(relative) or SECRET_NAME_RE.search(relative):
                     continue
                 candidate = repo / relative
                 try:

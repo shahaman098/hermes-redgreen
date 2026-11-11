@@ -110,8 +110,13 @@ def parse_tool_result(result: Any) -> tuple[int | None, str]:
     if isinstance(payload, dict):
         for key in ("exit_code", "returncode", "code"):
             value = payload.get(key)
+            if isinstance(value, bool):
+                continue
             if isinstance(value, (int, float)):
                 exit_code = int(value)
+                break
+            if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+                exit_code = int(value.strip())
                 break
         for key in ("output", "stdout", "result", "text"):
             value = payload.get(key)
@@ -215,6 +220,12 @@ def certificate_for(record: core.SessionRecord, verdict: core.Verdict) -> Path:
     return path
 
 
+def display_certificate(certificate: Path | None) -> str:
+    if certificate is None:
+        return ""
+    return f"certificates/{certificate.name}"
+
+
 def verdict_headline(verdict: core.Verdict) -> str:
     labels = {
         "proven": "PROVEN",
@@ -299,12 +310,12 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
         )
     if certificate is not None:
         lines.append("")
-        lines.append(f"Certificate: {certificate}")
+        lines.append(f"Certificate: {display_certificate(certificate)}")
     return "\n".join(lines)
 
 
 def proof_badge(verdict: core.Verdict, certificate: Path | None) -> str:
-    location = f" · {certificate}" if certificate else ""
+    location = f" · {display_certificate(certificate)}" if certificate else ""
     return (
         f"🧪 Falsify: proof of fix. `{verdict.command}` fails without the change and "
         f"passes with it{location}"
@@ -322,7 +333,7 @@ def stamp_unproven(text: str, verdict: core.Verdict, certificate: Path | None) -
         f"after: {(verdict.current.summary if verdict.current else 'not run')}"
     )
     if certificate is not None:
-        detail += f"\nCertificate: {certificate}"
+        detail += f"\nCertificate: {display_certificate(certificate)}"
     return detail + "\n\n---\n\n" + (text or "")
 
 

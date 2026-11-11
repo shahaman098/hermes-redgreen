@@ -206,6 +206,22 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
 """
 
 
+SHORT_REASONS = {
+    "proven": "red without the change, green with it",
+    "unproven_no_test": "the suite was green before the change too",
+    "unproven_weak": "the new test also passes without the fix",
+    "unproven_tamper": "a test file was weakened while proving the fix",
+    "unproven_import_error": "the test cannot load on the old tree",
+    "failing_now": "the command is red now",
+    "fabricated": "the reported result did not reproduce",
+    "no_command": "no test command was run",
+    "no_baseline": "no pre-change snapshot",
+    "before_unrelated_failure": "the old failure was not in the changed tests",
+    "timeout": "the command timed out",
+    "unproven_behavior_changed": "behavior changed but should not have",
+}
+
+
 def render_terminal_certificate(verdict: core.Verdict) -> str:
     label, _, _ = STATUS_COPY.get(verdict.status, (verdict.status.upper(), "", ""))
     before = verdict.before
@@ -227,7 +243,7 @@ def render_terminal_certificate(verdict: core.Verdict) -> str:
         rule,
         f"command  {verdict.command}",
         f"baseline {_short(verdict.baseline_sha, 16) or 'none'}",
-        f"verdict  {verdict.reason}",
+        f"verdict  {SHORT_REASONS.get(verdict.status, verdict.reason)}",
         f"sha256   {_short(verdict.certificate_id, 40)}",
     ]
     return "\n".join(lines)

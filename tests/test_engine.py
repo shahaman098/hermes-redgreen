@@ -235,6 +235,41 @@ class GitHelpersTests(RepoFixture):
         show = git(self.repo, "show", "--stat", "--oneline", sha)
         self.assertEqual(show.returncode, 0)
 
+    def test_dirty_baseline_is_used_for_the_negative_control(self) -> None:
+        # The user had uncommitted work before the session: a 10% default.
+        write(
+            self.repo / "pricing.py",
+            """
+            def apply_discount(subtotal, percent=10.0, cap=50.0):
+                discount = subtotal * (percent / 100.0)
+                return round(subtotal - discount, 2)
+            """,
+        )
+        sha, kind = core.capture_baseline(self.repo)
+        self.assertEqual(kind, "snapshot")
+        # The agent fixes the default and adds the cap in the same edit.
+        self.fix(with_regression_test=True)
+        verdict = core.verify(
+            repo=self.repo,
+            baseline_sha=sha,
+            baseline_kind=kind,
+            command="python3 -m pytest -q",
+            timeout=30,
+        )
+        self.assertEqual(verdict.status, "proven", verdict.reason)
+        self.assertIn("test_discount_is_capped", " ".join(verdict.failed_before))
+
+    def test_snapshot_excludes_secret_files(self) -> None:
+        write(self.repo / ".env", "API_KEY=super-secret\n")
+        write(self.repo / "server.pem", "not really a key\n")
+        write(self.repo / "notes.txt", "keep me\n")
+        sha, kind = core.capture_baseline(self.repo)
+        self.assertEqual(kind, "snapshot")
+        tree = git(self.repo, "ls-tree", "-r", "--name-only", sha).stdout
+        self.assertIn("notes.txt", tree)
+        self.assertNotIn(".env", tree)
+        self.assertNotIn("server.pem", tree)
+
     def test_test_command_detection(self) -> None:
         self.assertTrue(core.is_test_command("python3 -m pytest -q"))
         self.assertTrue(core.is_test_command("npm test"))

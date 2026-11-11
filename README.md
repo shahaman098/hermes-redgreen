@@ -6,7 +6,7 @@ Falsify is a Hermes Agent plugin that refuses to let an agent call a bug fixed u
 negative control: red on the pre-change tree, green on the current one. It does not read the transcript and
 trust it. It re-runs the command itself, twice.
 
-[![Tests](https://img.shields.io/badge/tests-12_passing-success.svg)]()
+[![Tests](https://img.shields.io/badge/tests-14_passing-success.svg)]()
 [![Dependencies](https://img.shields.io/badge/dependencies-zero_(stdlib)-brightgreen.svg)]()
 [![Hermes](https://img.shields.io/badge/Hermes_Agent-plugin_v1.0-blue.svg)]()
 
@@ -138,6 +138,10 @@ Restart Hermes. The plugin is opt-in like every general plugin.
 
 Nothing to configure. Edit code, run a test command, finish. Falsify checks the run.
 
+The full interlock uses Hermes's `pre_verify` hook, which follows `agent.verify_on_stop` (the default is `auto`).
+If you have set `agent.verify_on_stop: false`, Falsify still stamps the final message **UNPROVEN**, but it cannot
+make the agent continue.
+
 The agent also gets five tools:
 
 | Tool | What it does |
@@ -210,6 +214,9 @@ command the agent already ran, and writes JSON and HTML under `~/.hermes/plugin-
   test-runner pattern are accepted, and `falsify_check` refuses anything else.
 - The temporary worktree is removed in a `finally` block, and stale worktrees are pruned.
 - The plugin never overwrites the real working tree, index or stash.
+- A snapshot is a commit object written through a temporary index. It leaves loose objects in `.git/objects` for
+  `git gc` to collect. Secret files (`.env`, keys, `auth.json`, credentials) are excluded from the snapshot and
+  from signature hashing.
 - Installed dependency directories (`node_modules`, `.venv`, `venv`, `vendor`) are symlinked into the temporary
   tree so the old side does not fail for a missing dependency.
 
@@ -220,7 +227,7 @@ python3 -m unittest discover -s tests -v
 python3 demo.py
 ```
 
-The 12 engine tests build real git repositories. No mocks. They cover clean and dirty baselines, untracked test
+The 14 engine tests build real git repositories. No mocks. They cover clean and dirty baselines, untracked test
 files, weak tests, failing fixes, fabricated results, deleted assertions and command detection.
 
 ## Limitations

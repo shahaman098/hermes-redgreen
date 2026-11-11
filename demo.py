@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -30,6 +31,11 @@ GREEN = "\033[32m"
 YELLOW = "\033[33m"
 CYAN = "\033[36m"
 RESET = "\033[0m"
+
+
+def pause(seconds: float) -> None:
+    if os.environ.get("FALSIFY_DEMO_SLOW"):
+        time.sleep(seconds)
 
 
 def say(prefix: str, text: str, color: str = "") -> None:
@@ -92,6 +98,7 @@ def main() -> int:
         say("[repo]", "shopcart · 1 module · 2 tests", DIM)
         say("[baseline]", f"{baseline[:10]} ({baseline_kind})", DIM)
         print()
+        pause(2.0)
 
         say("[agent]", "User: orders over 100 should get 20% off, capped at 50. Fix it.")
         write(
@@ -122,6 +129,7 @@ def main() -> int:
         say("[agent]", f"ran `python3 -m pytest -q` -> {run.summary}")
         say("[agent]", f"{BOLD}\"Fixed. All tests pass.\"{RESET}")
         print()
+        pause(2.5)
 
         verdict = core.verify(
             repo=repo,
@@ -131,12 +139,13 @@ def main() -> int:
             reported=run,
             timeout=30,
         )
-        say("[falsify]", f"{YELLOW}{STATUS_COPY[verdict.status][0]}{RESET} · {verdict.reason}")
+        say("[falsify]", f"{YELLOW}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
         print()
         print(textwrap.indent(render_terminal_certificate(verdict), "  "))
         print()
         say("[falsify]", "The new test passes without the fix too. It proves nothing.")
         print()
+        pause(3.0)
 
         say("[agent]", "Fine: add a test that actually describes the missing cap.")
         write(
@@ -161,6 +170,7 @@ def main() -> int:
         say("[agent]", f"ran `python3 -m pytest -q` -> {run.summary}")
         say("[agent]", f"{BOLD}\"Fixed. All tests pass.\"{RESET}")
         print()
+        pause(2.5)
 
         verdict = core.verify(
             repo=repo,
@@ -170,8 +180,9 @@ def main() -> int:
             reported=run,
             timeout=30,
         )
-        say("[falsify]", f"{GREEN}{STATUS_COPY[verdict.status][0]}{RESET} · {verdict.reason}")
+        say("[falsify]", f"{GREEN}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
         print()
+        pause(2.5)
         print(textwrap.indent(render_terminal_certificate(verdict), "  "))
         print()
 
@@ -180,6 +191,7 @@ def main() -> int:
         say("[falsify]", f"certificate: {certificate}")
         print()
         print(f"{BOLD}Verified: red without the fix ({verdict.before.summary}), green with it ({verdict.current.summary}).{RESET}")
+        pause(4.0)
     return 0
 
 
