@@ -1,4 +1,4 @@
-"""Falsify: prove a fix with a negative control before Hermes can call it done."""
+"""RedGreen: prove a fix with a negative control before Hermes can call it done."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ImportError:  # pragma: no cover - direct import while testing
 
 
 TOOLS = (
-    ("falsify_check", schemas.FALSIFY_CHECK, tools.handle_check),
-    ("falsify_status", schemas.FALSIFY_STATUS, tools.handle_status),
-    ("falsify_certificate", schemas.FALSIFY_CERTIFICATE, tools.handle_certificate),
-    ("falsify_history", schemas.FALSIFY_HISTORY, tools.handle_history),
-    ("falsify_explain", schemas.FALSIFY_EXPLAIN, tools.handle_explain),
+    ("redgreen_check", schemas.REDGREEN_CHECK, tools.handle_check),
+    ("redgreen_status", schemas.REDGREEN_STATUS, tools.handle_status),
+    ("redgreen_certificate", schemas.REDGREEN_CERTIFICATE, tools.handle_certificate),
+    ("redgreen_history", schemas.REDGREEN_HISTORY, tools.handle_history),
+    ("redgreen_explain", schemas.REDGREEN_EXPLAIN, tools.handle_explain),
 )
 
 HOOKS = (
@@ -30,14 +30,14 @@ HOOKS = (
 
 
 def _command(raw_args: str = "") -> str:
-    """`/falsify` shows the latest proof; `/falsify explain` shows the rule."""
+    """`/redgreen` shows the latest proof; `/redgreen explain` shows the rule."""
     text = (raw_args or "").strip().lower()
     if text in {"explain", "help", "?"}:
         return tools.EXPLAIN
     rows = tools.runtime.STORE.list_certificates(limit=5)
     if not rows:
-        return "Falsify: no certificates yet. A verdict is written after the first fix."
-    lines = ["Falsify · recent proofs"]
+        return "RedGreen: no certificates yet. A verdict is written after the first fix."
+    lines = ["RedGreen · recent proofs"]
     for row in rows:
         status = str(row.get("status") or "?").upper()
         command = str(row.get("command") or "")[:60]
@@ -64,14 +64,14 @@ def _handle_cli(args) -> int:
     if action == "open":
         latest = tools.runtime.STORE.latest_certificate()
         if latest is None:
-            print("Falsify: no certificates yet.")
+            print("RedGreen: no certificates yet.")
             return 1
         print(latest)
         tools._open_path(latest)
         return 0
     rows = tools.runtime.STORE.list_certificates(limit=20)
     if not rows:
-        print("Falsify: no certificates yet.")
+        print("RedGreen: no certificates yet.")
         return 0
     print(f"{'VERDICT':<14} {'COMMAND':<40} CERTIFICATE")
     for row in rows:
@@ -86,7 +86,7 @@ def register(ctx) -> None:
     for name, schema, handler in TOOLS:
         ctx.register_tool(
             name=name,
-            toolset="falsify",
+            toolset="redgreen",
             schema=schema,
             handler=handler,
             description=schema.get("description", ""),
@@ -96,17 +96,17 @@ def register(ctx) -> None:
         ctx.register_hook(hook_name, callback)
 
     ctx.register_command(
-        "falsify",
+        "redgreen",
         _command,
-        description="Show the last Falsify proof; /falsify explain for the rule",
+        description="Show the last RedGreen proof; /redgreen explain for the rule",
     )
 
     ctx.register_cli_command(
-        "falsify",
-        help="Inspect Falsify proof-of-fix certificates",
+        "redgreen",
+        help="Inspect RedGreen proof-of-fix certificates",
         setup_fn=_setup_cli,
         handler_fn=_handle_cli,
-        description="List, open or explain the negative-control proofs Falsify minted.",
+        description="List, open or explain the negative-control proofs RedGreen minted.",
     )
 
     skill = Path(__file__).resolve().parent / "skills" / "negative-control" / "SKILL.md"

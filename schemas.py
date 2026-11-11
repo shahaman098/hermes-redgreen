@@ -1,9 +1,9 @@
 """Tool schemas: what the model sees."""
 
-FALSIFY_CHECK = {
-    "name": "falsify_check",
+REDGREEN_CHECK = {
+    "name": "redgreen_check",
     "description": (
-        "Prove a fix with a negative control before claiming completion. Falsify "
+        "Prove a fix with a negative control before claiming completion. RedGreen "
         "re-runs the test command itself, then runs it again on the pre-change tree "
         "with the new tests overlaid. It returns PROVEN only when the command is red "
         "without the change and green with it. Use this after editing code and before "
@@ -33,17 +33,17 @@ FALSIFY_CHECK = {
     },
 }
 
-FALSIFY_STATUS = {
-    "name": "falsify_status",
+REDGREEN_STATUS = {
+    "name": "redgreen_status",
     "description": (
-        "Show what Falsify knows about this session: the pre-change baseline, files "
+        "Show what RedGreen knows about this session: the pre-change baseline, files "
         "changed, test runs seen, and the last verdict. Read-only."
     ),
     "parameters": {"type": "object", "properties": {}, "required": []},
 }
 
-FALSIFY_CERTIFICATE = {
-    "name": "falsify_certificate",
+REDGREEN_CERTIFICATE = {
+    "name": "redgreen_certificate",
     "description": (
         "Write the proof-of-fix certificate for the last verdict as a self-contained "
         "HTML page, and optionally open it in the browser. The certificate contains "
@@ -61,9 +61,9 @@ FALSIFY_CERTIFICATE = {
     },
 }
 
-FALSIFY_HISTORY = {
-    "name": "falsify_history",
-    "description": "List recent Falsify certificates and their verdicts.",
+REDGREEN_HISTORY = {
+    "name": "redgreen_history",
+    "description": "List recent RedGreen certificates and their verdicts.",
     "parameters": {
         "type": "object",
         "properties": {
@@ -76,10 +76,10 @@ FALSIFY_HISTORY = {
     },
 }
 
-FALSIFY_EXPLAIN = {
-    "name": "falsify_explain",
+REDGREEN_EXPLAIN = {
+    "name": "redgreen_explain",
     "description": (
-        "Explain the negative-control rule and the exact workflow Falsify expects. "
+        "Explain the negative-control rule and the exact workflow RedGreen expects. "
         "Useful when a check is vetoed and you need to know what would satisfy it."
     ),
     "parameters": {"type": "object", "properties": {}, "required": []},

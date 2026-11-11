@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproducible Falsify demo. No model, no network, no API key.
+"""Reproducible RedGreen demo. No model, no network, no API key.
 
 It creates a small git repository with a real bug, plays a scripted agent that
 "fixes" it with a test that cannot fail, and then runs the same engine the
@@ -34,7 +34,7 @@ RESET = "\033[0m"
 
 
 def pause(seconds: float) -> None:
-    if os.environ.get("FALSIFY_DEMO_SLOW"):
+    if os.environ.get("REDGREEN_DEMO_SLOW"):
         time.sleep(seconds)
 
 
@@ -57,18 +57,18 @@ def pytest(repo: Path) -> core.RunResult:
 
 def main() -> int:
     print()
-    print(f"{BOLD}FALSIFY{RESET}  {DIM}a test only proves a fix when it fails without the fix{RESET}")
+    print(f"{BOLD}REDGREEN{RESET}  {DIM}a test only proves a fix when it fails without the fix{RESET}")
     print()
 
-    demo_root = os.environ.get("FALSIFY_DEMO_DIR")
-    with tempfile.TemporaryDirectory(prefix="falsify-demo-") as tmp:
+    demo_root = os.environ.get("REDGREEN_DEMO_DIR")
+    with tempfile.TemporaryDirectory(prefix="redgreen-demo-") as tmp:
         repo = Path(demo_root) if demo_root else Path(tmp) / "shopcart"
         if demo_root:
             shutil.rmtree(repo, ignore_errors=True)
         repo.mkdir(parents=True)
         git(repo, "init", "-q")
-        git(repo, "config", "user.email", "demo@falsify.local")
-        git(repo, "config", "user.name", "Falsify Demo")
+        git(repo, "config", "user.email", "demo@redgreen.local")
+        git(repo, "config", "user.name", "RedGreen Demo")
 
         write(
             repo / "pricing.py",
@@ -139,11 +139,11 @@ def main() -> int:
             reported=run,
             timeout=30,
         )
-        say("[falsify]", f"{YELLOW}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
+        say("[redgreen]", f"{YELLOW}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
         print()
         print(textwrap.indent(render_terminal_certificate(verdict), "  "))
         print()
-        say("[falsify]", "The new test passes without the fix too. It proves nothing.")
+        say("[redgreen]", "The new test passes without the fix too. It proves nothing.")
         print()
         pause(3.0)
 
@@ -180,7 +180,7 @@ def main() -> int:
             reported=run,
             timeout=30,
         )
-        say("[falsify]", f"{GREEN}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
+        say("[redgreen]", f"{GREEN}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
         print()
         pause(2.5)
         print(textwrap.indent(render_terminal_certificate(verdict), "  "))
@@ -188,7 +188,7 @@ def main() -> int:
 
         certificate = Path(__file__).resolve().parent / "demo-certificate.html"
         certificate.write_text(render_certificate(verdict, diff_stat=""), encoding="utf-8")
-        say("[falsify]", f"certificate: {certificate}")
+        say("[redgreen]", f"certificate: {certificate}")
         print()
         print(f"{BOLD}Verified: red without the fix ({verdict.before.summary}), green with it ({verdict.current.summary}).{RESET}")
         pause(4.0)

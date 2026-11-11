@@ -103,7 +103,7 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Falsify · {_esc(label)} · {_esc(_short(fingerprint, 8))}</title>
+<title>RedGreen · {_esc(label)} · {_esc(_short(fingerprint, 8))}</title>
 <style>
   :root {{
     --bg: #0b0e14; --panel: #121722; --line: #232b3b; --text: #e8edf7;
@@ -166,7 +166,7 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
       <path d="M20 4a16 16 0 0 1 0 32V4Z" fill="{color}" opacity=".9"/>
       <circle cx="20" cy="20" r="4" fill="#0b0e14" stroke="#0b0e14"/>
     </svg>
-    <div class="brand">FALSIFY · <b>PROOF OF FIX</b></div>
+    <div class="brand">REDGREEN · <b>PROOF OF FIX</b></div>
   </div>
 
   <div class="verdict"><span class="dot"></span>{_esc(label)}</div>
@@ -192,12 +192,12 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
   <div class="rule">
     <strong>The rule</strong>
     <p>A test only proves a fix when it <em>fails without the fix</em>. Both runs above were
-    executed by Falsify itself, from the same command, on the same machine.</p>
+    executed by RedGreen itself, from the same command, on the same machine.</p>
     {diff_block}
   </div>
 
   <footer>
-    <span>Falsify verifies agent fixes with a negative control. Nothing here trusts the agent's transcript.</span>
+    <span>RedGreen verifies agent fixes with a negative control. Nothing here trusts the agent's transcript.</span>
     <span>sha256:{_esc(fingerprint)}</span>
   </footer>
 </div>
@@ -236,7 +236,7 @@ def render_terminal_certificate(verdict: core.Verdict) -> str:
 
     rule = "─" * 68
     lines = [
-        f"FALSIFY · {label}",
+        f"REDGREEN · {label}",
         rule,
         row("without change", before).replace("│ ", ""),
         row("with change", current).replace("│ ", ""),

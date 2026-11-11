@@ -16,9 +16,9 @@ except ImportError:  # pragma: no cover - direct import while testing
     import runtime  # type: ignore
 
 
-EXPLAIN = """Falsify proves a fix with a negative control.
+EXPLAIN = """RedGreen proves a fix with a negative control.
 
-A test only proves a fix when it fails without the fix. Falsify re-runs the test
+A test only proves a fix when it fails without the fix. RedGreen re-runs the test
 command itself, then runs the same command on the pre-change tree with the new
 tests overlaid. Only red-before / green-after counts.
 
@@ -27,9 +27,9 @@ Workflow:
 2. Run it and show the failure.
 3. Fix the code.
 4. Run the test again; it must pass.
-5. Finish. Falsify re-runs both sides and mints a certificate.
+5. Finish. RedGreen re-runs both sides and mints a certificate.
 
-Weak evidence Falsify rejects:
+Weak evidence RedGreen rejects:
 - a green suite that was green before the change
 - a new test that also passes without the fix
 - a reported run that does not reproduce
@@ -82,7 +82,7 @@ def handle_check(params: dict[str, Any], **kwargs: Any) -> str:
                 "ok": False,
                 "status": "not_a_test",
                 "message": (
-                    "Falsify only re-runs test commands, not arbitrary shell commands. "
+                    "RedGreen only re-runs test commands, not arbitrary shell commands. "
                     "Pass a pytest/npm test/cargo test/go test command."
                 ),
             }
@@ -128,7 +128,7 @@ def handle_certificate(params: dict[str, Any], **kwargs: Any) -> str:
     verdict_data = record.last_verdict
     if not verdict_data:
         return json.dumps(
-            {"ok": False, "message": "No verdict yet. Call falsify_check first."}
+            {"ok": False, "message": "No verdict yet. Call redgreen_check first."}
         )
     certificate = runtime.STORE.latest_certificate()
     if certificate is None or certificate.stem != str(verdict_data.get("certificate_id", ""))[:16]:
@@ -188,9 +188,9 @@ def _open_path(path: Path) -> bool:
 
 
 TOOL_HANDLERS = {
-    "falsify_check": handle_check,
-    "falsify_status": handle_status,
-    "falsify_certificate": handle_certificate,
-    "falsify_history": handle_history,
-    "falsify_explain": handle_explain,
+    "redgreen_check": handle_check,
+    "redgreen_status": handle_status,
+    "redgreen_certificate": handle_certificate,
+    "redgreen_history": handle_history,
+    "redgreen_explain": handle_explain,
 }

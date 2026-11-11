@@ -30,11 +30,11 @@ MUTATION_TOOLS = frozenset(
 
 TOOL_NAMES = frozenset(
     {
-        "falsify_check",
-        "falsify_status",
-        "falsify_certificate",
-        "falsify_history",
-        "falsify_explain",
+        "redgreen_check",
+        "redgreen_status",
+        "redgreen_certificate",
+        "redgreen_history",
+        "redgreen_explain",
     }
 )
 
@@ -57,9 +57,9 @@ def settings() -> dict[str, Any]:
             return default
 
     return {
-        "timeout": max(5.0, number("FALSIFY_TIMEOUT", 120.0)),
-        "mode": os.environ.get("FALSIFY_MODE", "fix").strip().lower() or "fix",
-        "stamp": os.environ.get("FALSIFY_STAMP", "1").strip() not in {"0", "false", "no"},
+        "timeout": max(5.0, number("REDGREEN_TIMEOUT", 120.0)),
+        "mode": os.environ.get("REDGREEN_MODE", "fix").strip().lower() or "fix",
+        "stamp": os.environ.get("REDGREEN_STAMP", "1").strip() not in {"0", "false", "no"},
     }
 
 
@@ -172,7 +172,7 @@ def prove(
         return core.Verdict(
             status="no_baseline",
             reason=(
-                "Falsify has no pre-change snapshot for this session. The plugin can "
+                "RedGreen has no pre-change snapshot for this session. The plugin can "
                 "only prove a fix when it saw the change happen inside a git repository."
             ),
             command=command,
@@ -257,7 +257,7 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
     """The message the model reads when it is not allowed to finish."""
     before = verdict.before
     current = verdict.current
-    lines = [f"⛔ Falsify: {verdict_headline(verdict)}. You may not call this done yet.", ""]
+    lines = [f"⛔ RedGreen: {verdict_headline(verdict)}. You may not call this done yet.", ""]
     lines.append(f"Negative control: `{verdict.command or 'no command'}`")
     if current is not None:
         lines.append(_run_line("with change", current))
@@ -272,7 +272,7 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
     if verdict.status in {"unproven_no_test", "unproven_weak"}:
         lines.append(
             "Write a test that fails on the pre-change tree and passes with your fix, "
-            "run it, then finish. Falsify re-runs both sides itself."
+            "run it, then finish. RedGreen re-runs both sides itself."
         )
     elif verdict.status == "unproven_tamper":
         lines.append(
@@ -289,7 +289,7 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
         lines.append("Fix the failure, then run the command again.")
     elif verdict.status == "fabricated":
         lines.append(
-            "Run the command for real. Falsify only accepts a result it reproduced "
+            "Run the command for real. RedGreen only accepts a result it reproduced "
             "itself."
         )
     elif verdict.status == "no_command":
@@ -299,13 +299,13 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
         )
     elif verdict.status == "timeout":
         lines.append(
-            "Run the targeted test instead of the full suite, or set FALSIFY_TIMEOUT "
+            "Run the targeted test instead of the full suite, or set REDGREEN_TIMEOUT "
             "to a larger value."
         )
     elif verdict.status == "no_baseline":
         lines.append(
-            "Make the change inside a git repository so Falsify can reconstruct the "
-            "pre-change tree, or call falsify_check with a command after committing "
+            "Make the change inside a git repository so RedGreen can reconstruct the "
+            "pre-change tree, or call redgreen_check with a command after committing "
             "the baseline."
         )
     if certificate is not None:
@@ -317,17 +317,17 @@ def veto_message(verdict: core.Verdict, certificate: Path | None = None) -> str:
 def proof_badge(verdict: core.Verdict, certificate: Path | None) -> str:
     location = f" · {display_certificate(certificate)}" if certificate else ""
     return (
-        f"🧪 Falsify: proof of fix. `{verdict.command}` fails without the change and "
+        f"🧪 RedGreen: proof of fix. `{verdict.command}` fails without the change and "
         f"passes with it{location}"
     )
 
 
 def stamp_unproven(text: str, verdict: core.Verdict, certificate: Path | None) -> str:
-    if "Falsify" in (text or "")[:400]:
+    if "RedGreen" in (text or "")[:400]:
         return text
     reason = verdict.reason.strip()
     detail = (
-        f"⛔ UNPROVEN (Falsify)\n{reason}\n"
+        f"⛔ UNPROVEN (RedGreen)\n{reason}\n"
         f"Evidence: `{verdict.command or 'no test command'}` · "
         f"before: {(verdict.before.summary if verdict.before else 'not run')} · "
         f"after: {(verdict.current.summary if verdict.current else 'not run')}"

@@ -7,7 +7,7 @@ environment (the interpreter that can import ``hermes_cli``):
     ~/.hermes/hermes-agent-jobos/venv/bin/python demo_plugin.py
 
 No model is called. The scripted "agent" performs the same writes and test runs
-a model would, and every Falsify decision comes from the plugin's real hooks.
+a model would, and every RedGreen decision comes from the plugin's real hooks.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ BOLD, DIM, RED, GREEN, YELLOW, RESET = "\033[1m", "\033[2m", "\033[31m", "\033[3
 
 
 def pause(seconds: float) -> None:
-    if os.environ.get("FALSIFY_DEMO_SLOW"):
+    if os.environ.get("REDGREEN_DEMO_SLOW"):
         time.sleep(seconds)
 
 
@@ -51,42 +51,42 @@ def pytest(repo: Path) -> subprocess.CompletedProcess[str]:
 
 
 def main() -> int:
-    hermes_home = Path(tempfile.mkdtemp(prefix="falsify-home-"))
-    repo = Path(tempfile.mkdtemp(prefix="falsify-plugin-demo-")) / "shopcart"
+    hermes_home = Path(tempfile.mkdtemp(prefix="redgreen-home-"))
+    repo = Path(tempfile.mkdtemp(prefix="redgreen-plugin-demo-")) / "shopcart"
     repo.mkdir()
     plugins = hermes_home / "plugins"
     plugins.mkdir()
-    shutil.copytree(REPO, plugins / "falsify", ignore=shutil.ignore_patterns(".git", "__pycache__", "demo"))
+    shutil.copytree(REPO, plugins / "redgreen", ignore=shutil.ignore_patterns(".git", "__pycache__", "demo"))
 
     os.environ["HERMES_HOME"] = str(hermes_home)
-    os.environ["FALSIFY_TIMEOUT"] = "30"
+    os.environ["REDGREEN_TIMEOUT"] = "30"
 
     sys.path.insert(0, os.environ.get("HERMES_CHECKOUT", str(Path.home() / ".hermes/hermes-agent-jobos")))
     import yaml
 
     (hermes_home / "config.yaml").write_text(
-        yaml.safe_dump({"plugins": {"enabled": ["falsify"]}}), encoding="utf-8"
+        yaml.safe_dump({"plugins": {"enabled": ["redgreen"]}}), encoding="utf-8"
     )
     from hermes_cli.plugins import PluginManager  # type: ignore
 
     manager = PluginManager()
     manager.discover_and_load()
-    if "falsify" not in getattr(manager, "_plugins", {}):
-        print("Falsify did not load. Run this with the Hermes Python environment.")
+    if "redgreen" not in getattr(manager, "_plugins", {}):
+        print("RedGreen did not load. Run this with the Hermes Python environment.")
         return 1
 
-    session = {"session_id": "falsify-demo"}
+    session = {"session_id": "redgreen-demo"}
 
     def fire(name: str, **payload):
         return manager.invoke_hook(name, **session, **payload)
 
     print()
-    print(f"{BOLD}FALSIFY{RESET} {DIM}real Hermes plugin hooks, scripted agent{RESET}")
+    print(f"{BOLD}REDGREEN{RESET} {DIM}real Hermes plugin hooks, scripted agent{RESET}")
     print()
 
     git(repo, "init", "-q")
-    git(repo, "config", "user.email", "demo@falsify.local")
-    git(repo, "config", "user.name", "Falsify Demo")
+    git(repo, "config", "user.email", "demo@redgreen.local")
+    git(repo, "config", "user.name", "RedGreen Demo")
     write(
         repo / "pricing.py",
         """
@@ -199,14 +199,14 @@ def main() -> int:
     if vetoes:
         print(f"  {YELLOW}still blocked: {vetoes[0]['message'].splitlines()[0]}{RESET}")
         return 1
-    say("[falsify]", f"{GREEN}PROVEN{RESET} red without the change, green with it")
+    say("[redgreen]", f"{GREEN}PROVEN{RESET} red without the change, green with it")
 
     final = fire("transform_llm_output", response_text="Fixed. All tests pass.")
     print()
     print(f"  {final[0] if final else ''}")
     print()
     pause(5.0)
-    say("[falsify]", f"state: {hermes_home / 'plugin-data' / 'falsify'}")
+    say("[redgreen]", f"state: {hermes_home / 'plugin-data' / 'redgreen'}")
     return 0
 
 

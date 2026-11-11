@@ -1,7 +1,7 @@
-"""Falsify core: negative-control verification for agent fixes.
+"""RedGreen core: negative-control verification for agent fixes.
 
 The rule is simple and old: a test only proves a fix when it fails without the
-fix. Falsify takes the command the agent says it ran, re-runs it itself, then
+fix. RedGreen takes the command the agent says it ran, re-runs it itself, then
 runs the same command against the pre-change tree with the new tests overlaid.
 Only red-before / green-after counts as proof.
 
@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -205,6 +206,7 @@ class RunResult:
     duration_ms: int
     source: str = "rerun"  # "reported" | "rerun" | "before"
     timed_out: bool = False
+    shell_used: bool = False
 
     @property
     def green(self) -> bool:
@@ -236,6 +238,7 @@ class RunResult:
             "duration_ms": self.duration_ms,
             "source": self.source,
             "timed_out": self.timed_out,
+            "shell_used": self.shell_used,
             "green": self.green,
         }
 
@@ -434,7 +437,7 @@ def capture_baseline(repo: Path) -> tuple[str, str]:
     """Return (commit, kind) for the pre-change tree.
 
     "head" means the tree was clean at the first mutation. "snapshot" means the
-    user had uncommitted or untracked work, so Falsify records the whole working
+    user had uncommitted or untracked work, so RedGreen records the whole working
     tree as a throwaway commit through a temporary index. The real index, working
     tree and stash list are never touched.
     """
@@ -448,7 +451,7 @@ def capture_baseline(repo: Path) -> tuple[str, str]:
     head = _git(repo, "rev-parse", "HEAD")
     parent = head.stdout.strip() if head.returncode == 0 else ""
 
-    with tempfile.TemporaryDirectory(prefix="falsify-index-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="redgreen-index-") as tmp:
         index_path = str(Path(tmp) / "index")
         env = {"GIT_INDEX_FILE": index_path}
         if parent:
@@ -459,8 +462,8 @@ def capture_baseline(repo: Path) -> tuple[str, str]:
         tree = _git(repo, "write-tree", extra_env=env)
         if tree.returncode != 0 or not tree.stdout.strip():
             return (parent, "head") if parent else ("", "none")
-        commit_args = ["-c", "user.name=Falsify", "-c", "user.email=falsify@localhost",
-                       "commit-tree", tree.stdout.strip(), "-m", "falsify baseline snapshot"]
+        commit_args = ["-c", "user.name=RedGreen", "-c", "user.email=redgreen@localhost",
+                       "commit-tree", tree.stdout.strip(), "-m", "redgreen baseline snapshot"]
         if parent:
             commit_args.extend(["-p", parent])
         commit = _git(repo, *commit_args, extra_env=env)
@@ -567,6 +570,49 @@ def overlay_files(source_repo: Path, target_repo: Path, paths: Iterable[str]) ->
 # ---------------------------------------------------------------------------
 
 
+SAFE_ENV_KEYS = (
+    "PATH", "HOME", "LANG", "LC_ALL", "LC_CTYPE", "TMPDIR", "TEMP", "TMP",
+    "VIRTUAL_ENV", "PYTHONPATH", "PYTHONHOME", "PYTHONDONTWRITEBYTECODE",
+    "GOPATH", "GOROOT", "CARGO_HOME", "RUSTUP_HOME", "NVM_DIR", "PNPM_HOME",
+    "VOLTA_HOME", "BUN_INSTALL", "SYSTEMROOT", "COMSPEC", "PATHEXT",
+    "USERPROFILE", "APPDATA", "LOCALAPPDATA",
+)
+
+SHELL_META_RE = re.compile(r"[|&;<>()$`\\\n]|(?:^|\s)[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def safe_environment(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """A test-runner environment without the user's provider keys or tokens."""
+    env = {key: os.environ[key] for key in SAFE_ENV_KEYS if key in os.environ}
+    env.update(
+        {
+            "PYTHONUNBUFFERED": "1",
+            "CI": os.environ.get("CI", "1"),
+            "NO_COLOR": "1",
+            "FORCE_COLOR": "0",
+        }
+    )
+    if extra:
+        env.update(extra)
+    return env
+
+
+def argv_for(command: str) -> list[str] | None:
+    """Return an argv for a simple command, or None when a shell is required.
+
+    A test command with pipes, redirection, substitutions or inline environment
+    assignments needs a shell. Everything else runs without one, so a `;` or
+    backtick hidden in a tool-captured command cannot start a second process.
+    """
+    if not command or SHELL_META_RE.search(command):
+        return None
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return None
+    return parts or None
+
+
 def run_command(
     command: str,
     cwd: Path,
@@ -576,19 +622,12 @@ def run_command(
     extra_env: dict[str, str] | None = None,
 ) -> RunResult:
     started = time.monotonic()
-    env = {
-        **os.environ,
-        "PYTHONUNBUFFERED": "1",
-        "CI": os.environ.get("CI", "1"),
-        "NO_COLOR": "1",
-        "FORCE_COLOR": "0",
-    }
-    if extra_env:
-        env.update(extra_env)
+    env = safe_environment(extra_env)
+    argv = argv_for(command)
     try:
         proc = subprocess.run(
-            command,
-            shell=True,
+            argv if argv is not None else command,
+            shell=argv is None,
             check=False,
             cwd=str(cwd),
             capture_output=True,
@@ -606,6 +645,7 @@ def run_command(
             output=output[-MAX_OUTPUT_CHARS:],
             duration_ms=int((time.monotonic() - started) * 1000),
             source=source,
+            shell_used=argv is None,
         )
     except subprocess.TimeoutExpired as exc:
         partial = ""
@@ -618,7 +658,7 @@ def run_command(
             command=command,
             cwd=str(cwd),
             exit_code=None,
-            output=(partial + f"\n[falsify] timed out after {timeout:.0f}s")[-MAX_OUTPUT_CHARS:],
+            output=(partial + f"\n[redgreen] timed out after {timeout:.0f}s")[-MAX_OUTPUT_CHARS:],
             duration_ms=int((time.monotonic() - started) * 1000),
             source=source,
             timed_out=True,
@@ -628,7 +668,7 @@ def run_command(
             command=command,
             cwd=str(cwd),
             exit_code=None,
-            output=f"[falsify] could not run command: {exc}",
+            output=f"[redgreen] could not run command: {exc}",
             duration_ms=int((time.monotonic() - started) * 1000),
             source=source,
         )
@@ -677,7 +717,7 @@ def verify(
         if reported.green and current.red:
             verdict.status = "fabricated"
             verdict.reason = (
-                "The reported run was green, but Falsify's own re-run is red. "
+                "The reported run was green, but RedGreen's own re-run is red. "
                 "The completion claim does not reproduce."
             )
             return verdict.finalize()
@@ -691,14 +731,14 @@ def verify(
         if current.timed_out:
             verdict.status = "timeout"
             verdict.reason = (
-                f"The test command did not finish within {timeout:.0f}s, so Falsify "
+                f"The test command did not finish within {timeout:.0f}s, so RedGreen "
                 "cannot reproduce the claim. Run the targeted test instead."
             )
             return verdict.finalize()
     elif current.red:
         verdict.status = "failing_now" if not current.timed_out else "timeout"
         verdict.reason = (
-            "Falsify re-ran the test command and it is red on the current tree."
+            "RedGreen re-ran the test command and it is red on the current tree."
         )
         return verdict.finalize()
 
@@ -709,7 +749,7 @@ def verify(
         if is_overlay_path(relative) and not (repo / relative).exists():
             verdict.tamper.append(f"{relative}: test file deleted")
 
-    tmp_root = Path(tempfile.mkdtemp(prefix="falsify-"))
+    tmp_root = Path(tempfile.mkdtemp(prefix="redgreen-"))
     before_tree = tmp_root / "tree"
     try:
         added = _worktree_add(repo, baseline_sha, before_tree)
@@ -896,7 +936,7 @@ class SessionStore:
 
     def __init__(self, root: Path | None = None) -> None:
         home = Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
-        self.root = root or home / "plugin-data" / "falsify"
+        self.root = root or home / "plugin-data" / "redgreen"
         self.sessions_dir = self.root / "sessions"
         self.certificates_dir = self.root / "certificates"
         self._cache: dict[str, SessionRecord] = {}

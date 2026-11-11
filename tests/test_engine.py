@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,7 @@ def write(path: Path, text: str) -> None:
 
 class RepoFixture(unittest.TestCase):
     def setUp(self) -> None:
-        self._tmp = tempfile.TemporaryDirectory(prefix="falsify-test-")
+        self._tmp = tempfile.TemporaryDirectory(prefix="redgreen-test-")
         self.repo = Path(self._tmp.name) / "shop"
         self.repo.mkdir(parents=True)
         git(self.repo, "init", "-q")
@@ -269,6 +270,24 @@ class GitHelpersTests(RepoFixture):
         self.assertIn("notes.txt", tree)
         self.assertNotIn(".env", tree)
         self.assertNotIn("server.pem", tree)
+
+    def test_run_does_not_inherit_provider_keys(self) -> None:
+        os.environ["OPENAI_API_KEY"] = "sk-should-not-leak"
+        try:
+            run = core.run_command(
+                "python3 -c \"import os; print(os.environ.get('OPENAI_API_KEY', 'missing'))\"",
+                self.repo,
+                timeout=15,
+            )
+        finally:
+            os.environ.pop("OPENAI_API_KEY", None)
+        self.assertIn("missing", run.output)
+        self.assertNotIn("sk-should-not-leak", run.output)
+
+    def test_simple_commands_run_without_a_shell(self) -> None:
+        self.assertEqual(core.argv_for("python3 -m pytest -q"), ["python3", "-m", "pytest", "-q"])
+        self.assertIsNone(core.argv_for("pytest; rm -rf /tmp/nope"))
+        self.assertIsNone(core.argv_for("FOO=1 pytest"))
 
     def test_test_command_detection(self) -> None:
         self.assertTrue(core.is_test_command("python3 -m pytest -q"))

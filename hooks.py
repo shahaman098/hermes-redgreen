@@ -186,7 +186,7 @@ def on_pre_verify(
     message = runtime.veto_message(verdict, certificate)
     if attempt >= 2:
         message += (
-            "\n\nThis is the third check. If you finish anyway, Falsify will stamp the "
+            "\n\nThis is the third check. If you finish anyway, RedGreen will stamp the "
             "final reply UNPROVEN."
         )
     return {"action": "continue", "message": message}
@@ -245,7 +245,7 @@ def on_transform_llm_output(response_text: str = "", session_id: str = "", **kwa
         runtime.STORE.save(record)
 
     if verdict.proven:
-        if runtime.mention_claims(response_text) and "Falsify" not in response_text[:400]:
+        if runtime.mention_claims(response_text) and "RedGreen" not in response_text[:400]:
             certificate = runtime.certificate_path_for(verdict)
             return response_text.rstrip() + "\n\n" + runtime.proof_badge(verdict, certificate)
         return response_text

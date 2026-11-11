@@ -8,7 +8,7 @@ Set Theme "Catppuccin Mocha"
 Set TypingSpeed 35ms
 Set Shell "zsh"
 
-Type "echo 'Falsify · real Hermes plugin hooks · scripted agent'"
+Type "echo 'RedGreen · real Hermes plugin hooks · scripted agent'"
 Enter
 Sleep 900ms
 Type "~/.hermes/hermes-agent-jobos/venv/bin/python demo_plugin.py"
