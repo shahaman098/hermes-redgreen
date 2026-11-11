@@ -12,7 +12,7 @@ The form starts with:
 Later steps ask for the links; have these ready:
 
 - Catalog PR: https://github.com/NousResearch/hermes-agent/pull/153734
-- Demo video on X: https://x.com/shahaman098/status/____  (paste after posting)
+- Demo video on X: https://x.com/KrisKumarS26166/status/2120597112388047027
 
 ## Plugin Description
 
