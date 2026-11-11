@@ -7,7 +7,7 @@
 
 | Field | Value (after publish + PR open) |
 | --- | --- |
-| Catalog PR | `https://github.com/NousResearch/hermes-agent/pull/____` |
+| Catalog PR | https://github.com/NousResearch/hermes-agent/pull/153734 |
 | Demo video (X) | `https://x.com/shahaman098/status/____` |
 | Plugin repo | `https://github.com/shahaman098/hermes-redgreen` |
 

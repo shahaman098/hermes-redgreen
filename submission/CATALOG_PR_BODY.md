@@ -11,6 +11,6 @@
 - **Network:** none. No telemetry. No API keys required.
 - **Credentials:** does not read `.env`, `auth.json`, or external credential stores.
 
-**Validation:** `hermes plugins validate` run on commit `6bff19441bd64e6337a6cb7f955f62a3aea46ecb` (see PR CI).
+**Validation:** `hermes plugins validate` on pinned commit `c4b162c72e9555ecc7930c2a367dab6ae0ccd60d` (see PR CI).
 
 **Demo:** https://github.com/shahaman098/hermes-redgreen/blob/main/redgreen-demo.mp4 (60s). Offline repro: `python3 demo.py`.
