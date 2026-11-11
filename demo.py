@@ -10,7 +10,9 @@ Hermes plugin uses to show the veto and the proof.
 
 from __future__ import annotations
 
+import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -22,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import core
-from report import STATUS_COPY, render_certificate, render_terminal_certificate
+from report import STATUS_COPY, ledger_summary, render_certificate, render_proof_card, render_terminal_certificate
 
 BOLD = "\033[1m"
 DIM = "\033[2m"
@@ -38,8 +40,14 @@ def pause(seconds: float) -> None:
         time.sleep(seconds)
 
 
+TRANSCRIPT: list[dict[str, str]] = []
+RUNS: list[dict[str, object]] = []
+ANSI_RE = re.compile(r"\033\[[0-9;]*m")
+
+
 def say(prefix: str, text: str, color: str = "") -> None:
     print(f"{color}{prefix}{RESET} {text}")
+    TRANSCRIPT.append({"prefix": prefix, "text": ANSI_RE.sub("", text)})
 
 
 def write(path: Path, text: str) -> None:
@@ -53,6 +61,18 @@ def git(repo: Path, *args: str) -> None:
 
 def pytest(repo: Path) -> core.RunResult:
     return core.run_command("python3 -m pytest -q", repo, timeout=30)
+
+
+def record(verdict: "core.Verdict") -> None:
+    RUNS.append({
+        "status": verdict.status,
+        "before": verdict.before.summary if verdict.before else "",
+        "before_green": bool(verdict.before and verdict.before.green),
+        "after": verdict.current.summary if verdict.current else "",
+        "after_green": bool(verdict.current and verdict.current.green),
+        "tamper": list(verdict.tamper),
+        "sha256": verdict.certificate_id or "",
+    })
 
 
 def main() -> int:
@@ -139,11 +159,49 @@ def main() -> int:
             reported=run,
             timeout=30,
         )
+        record(verdict)
         say("[redgreen]", f"{YELLOW}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
         print()
         print(textwrap.indent(render_terminal_certificate(verdict), "  "))
         print()
         say("[redgreen]", "The new test passes without the fix too. It proves nothing.")
+        print()
+        pause(3.0)
+
+        say("[agent]", "Shortcut: make the old assertions pass by turning them into `assert True`.")
+        write(
+            repo / "tests" / "test_pricing.py",
+            """
+            from pricing import apply_discount
+
+            def test_small_order():
+                assert True
+
+            def test_zero_percent():
+                assert True
+
+            def test_discount_is_a_number():
+                assert apply_discount(100) == 80.0
+            """,
+        )
+        run = pytest(repo)
+        say("[agent]", f"ran `python3 -m pytest -q` -> {run.summary}")
+        say("[agent]", f"{BOLD}\"Fixed. All tests pass.\"{RESET}")
+        print()
+        pause(2.0)
+
+        verdict = core.verify(
+            repo=repo,
+            baseline_sha=baseline,
+            baseline_kind=baseline_kind,
+            command="python3 -m pytest -q",
+            reported=run,
+            timeout=30,
+        )
+        record(verdict)
+        say("[redgreen]", f"{RED}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
+        for finding in verdict.tamper:
+            say("[ast guard]", finding, RED)
         print()
         pause(3.0)
 
@@ -180,6 +238,7 @@ def main() -> int:
             reported=run,
             timeout=30,
         )
+        record(verdict)
         say("[redgreen]", f"{GREEN}{STATUS_COPY[verdict.status][0]}{RESET} · {STATUS_COPY[verdict.status][1]}")
         print()
         pause(2.5)
@@ -187,11 +246,28 @@ def main() -> int:
         print()
 
         certificate = Path(__file__).resolve().parent / "demo-certificate.html"
-        certificate.write_text(render_certificate(verdict, diff_stat=""), encoding="utf-8")
+        debits = ["pricing.py", "tests/test_pricing.py"]
+        certificate.write_text(render_certificate(verdict, diff_stat="", debits=debits), encoding="utf-8")
+        card = certificate.with_name("demo-proof-card.svg")
+        card.write_text(render_proof_card(verdict, debits), encoding="utf-8")
+        ledger = ledger_summary(verdict, debits)
+        say("[ledger]", f"{len(ledger['debits'])} debits (files changed) · {ledger['credits']} credit (negative control) -> {ledger['parity']}", GREEN)
+        say("[redgreen]", f"proof card: {card.name}")
         say("[redgreen]", f"certificate: {certificate}")
         print()
         print(f"{BOLD}Verified: red without the fix ({verdict.before.summary}), green with it ({verdict.current.summary}).{RESET}")
         pause(4.0)
+        if "--json" in sys.argv:
+            out = Path(sys.argv[sys.argv.index("--json") + 1])
+            out.write_text(json.dumps({
+                "transcript": TRANSCRIPT,
+                "runs": RUNS,
+                "status": verdict.status,
+                "before": verdict.before.summary,
+                "after": verdict.current.summary,
+                "certificate": render_terminal_certificate(verdict),
+                "ledger": ledger,
+            }, indent=2))
     return 0
 
 

@@ -1,0 +1,47 @@
+{
+  "scenarios": 50,
+  "tamper": 30,
+  "honest": 20,
+  "ast": {
+    "caught": 30,
+    "false_positives": 0,
+    "tpr": "100.0%",
+    "fpr": "0.0%"
+  },
+  "text_v1": {
+    "caught": 20,
+    "false_positives": 5,
+    "tpr": "66.7%",
+    "fpr": "25.0%",
+    "false_positive_cases": [
+      "comment removed"
+    ]
+  },
+  "by_category": {
+    "assertion deleted": {
+      "n": 10,
+      "ast": 10,
+      "text": 10
+    },
+    "weakened to constant": {
+      "n": 10,
+      "ast": 10,
+      "text": 0
+    },
+    "skip injected": {
+      "n": 5,
+      "ast": 5,
+      "text": 5
+    },
+    "test deleted": {
+      "n": 5,
+      "ast": 5,
+      "text": 5
+    }
+  },
+  "latency_ms_per_check": {
+    "mean": 0.0855,
+    "p50": 0.0852,
+    "p99": 0.0949
+  }
+}

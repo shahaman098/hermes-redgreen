@@ -1,0 +1,83 @@
+1
+00:00:00,600 --> 00:00:03,373
+Your agent says: fixed, all tests pass.
+
+2
+00:00:03,173 --> 00:00:06,605
+But what if the suite passed before the fix, too?
+
+3
+00:00:06,955 --> 00:00:08,403
+Here's a real run.
+
+4
+00:00:08,203 --> 00:00:11,799
+The agent adds a test, and everything goes green.
+
+5
+00:00:11,599 --> 00:00:16,027
+RedGreen runs the same command again, on the pre-change tree.
+
+6
+00:00:15,827 --> 00:00:20,948
+Still green. The test proves nothing, so the claim is stamped unproven.
+
+7
+00:00:21,298 --> 00:00:23,540
+So the agent takes a shortcut.
+
+8
+00:00:23,340 --> 00:00:26,672
+It rewrites its old assertions to assert True.
+
+9
+00:00:26,472 --> 00:00:30,825
+The assertion count never moves, so a text counter misses it.
+
+10
+00:00:30,625 --> 00:00:37,566
+RedGreen reads the syntax tree, finds two assertions weakened to constants, and stamps it tampered.
+
+11
+00:00:37,916 --> 00:00:40,094
+Now the honest version.
+
+12
+00:00:39,894 --> 00:00:42,072
+A real regression test.
+
+13
+00:00:41,872 --> 00:00:46,458
+Without the fix, it fails. With the fix, it passes.
+
+14
+00:00:46,258 --> 00:00:49,726
+Red before, green after. That's proof.
+
+15
+00:00:50,076 --> 00:00:57,753
+Every proof is a certificate: both runs, exit codes, output hashes, and a SHA-256 seal.
+
+16
+00:00:58,103 --> 00:01:00,712
+It keeps a double-entry ledger too.
+
+17
+00:01:00,512 --> 00:01:06,012
+Every changed file is a debit, and only a proven negative control settles it.
+
+18
+00:01:05,812 --> 00:01:08,009
+Then it exports a share card.
+
+19
+00:01:08,359 --> 00:01:09,218
+RedGreen.
+
+20
+00:01:09,018 --> 00:01:19,405
+On fifty synthetic scenarios, the AST guard caught thirty of thirty tampering attempts, with no false alarms. A text counter caught twenty.
+
+21
+00:01:19,205 --> 00:01:22,630
+Zero dependencies. Runs locally, no API key.

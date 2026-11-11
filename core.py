@@ -10,6 +10,7 @@ No Hermes imports live here so the engine can be tested on its own.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -373,17 +374,69 @@ def _looks_like_import_error(output: str) -> bool:
     )
 
 
+class _AstMetrics(ast.NodeVisitor):
+    """Counts real assert statements, test functions and constant-truthy asserts."""
+
+    def __init__(self) -> None:
+        self.asserts = 0
+        self.trivial = 0
+        self.tests = 0
+
+    def visit_Assert(self, node: ast.Assert) -> None:
+        self.asserts += 1
+        if isinstance(node.test, ast.Constant) and bool(node.test.value):
+            self.trivial += 1
+        self.generic_visit(node)
+
+    def _function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        if node.name.startswith("test_") or node.name.endswith("_test"):
+            self.tests += 1
+        self.generic_visit(node)
+
+    visit_FunctionDef = _function
+    visit_AsyncFunctionDef = _function
+
+
+def ast_metrics(source: str) -> dict[str, int] | None:
+    """AST metrics for Python test source, or None when it does not parse.
+
+    Unlike a regex this ignores comments and strings, and it sees an assertion
+    that was weakened to `assert True` even though the assert count did not move.
+    """
+    try:
+        tree = ast.parse(source or "")
+    except (SyntaxError, ValueError):
+        return None
+    visitor = _AstMetrics()
+    visitor.visit(tree)
+    return {"asserts": visitor.asserts, "trivial": visitor.trivial, "tests": visitor.tests}
+
+
 def count_tamper(before_text: str, after_text: str) -> list[str]:
-    """Cheap, transparent checks for tests that stopped testing anything."""
+    """Transparent checks for tests that stopped testing anything.
+
+    Python files are judged on their AST; every other language falls back to
+    plain text counting.
+    """
     findings: list[str] = []
-    after_defs = len(TEST_DEFINITION_RE.findall(after_text or ""))
-    before_defs = len(TEST_DEFINITION_RE.findall(before_text or ""))
+    before_ast, after_ast = ast_metrics(before_text), ast_metrics(after_text)
+    if before_ast is not None and after_ast is not None:
+        before_defs, after_defs = before_ast["tests"], after_ast["tests"]
+        before_asserts, after_asserts = before_ast["asserts"], after_ast["asserts"]
+        weakened = after_ast["trivial"] - before_ast["trivial"]
+        if weakened > 0:
+            findings.append(
+                f"{weakened} assertion(s) weakened to a constant (assert True) in this test file"
+            )
+    else:
+        after_defs = len(TEST_DEFINITION_RE.findall(after_text or ""))
+        before_defs = len(TEST_DEFINITION_RE.findall(before_text or ""))
+        before_asserts = len(re.findall(r"\bassert\b|\bexpect\s*\(", before_text or ""))
+        after_asserts = len(re.findall(r"\bassert\b|\bexpect\s*\(", after_text or ""))
     if before_defs and after_defs < before_defs:
         findings.append(
             f"{before_defs - after_defs} test definition(s) disappeared from this test file"
         )
-    before_asserts = len(re.findall(r"\bassert\b|\bexpect\s*\(", before_text or ""))
-    after_asserts = len(re.findall(r"\bassert\b|\bexpect\s*\(", after_text or ""))
     if before_asserts and after_asserts < before_asserts:
         findings.append(
             f"{before_asserts - after_asserts} assertion(s) disappeared from this test file"

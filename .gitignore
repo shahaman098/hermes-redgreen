@@ -8,3 +8,4 @@ demo-certificate.html
 build/
 demo*.mp4
 !redgreen-demo.mp4
+demo-proof-card.svg

@@ -82,7 +82,98 @@ HEADLINES = {
 }
 
 
-def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
+def ledger_summary(verdict: core.Verdict, debits: list[str] | None = None) -> dict[str, Any]:
+    """Double-entry view of a verdict.
+
+    Every file the agent changed is a debit. Only a PROVEN negative control is a credit that settles them.
+    """
+    paths = list(dict.fromkeys(debits or []))
+    if verdict.status == "proven":
+        parity = "BALANCED"
+    elif verdict.status == "unproven_tamper":
+        parity = "TAMPERED"
+    else:
+        parity = "DEFICIT"
+    return {
+        "debits": paths,
+        "credits": 1 if verdict.status == "proven" else 0,
+        "parity": parity,
+    }
+
+
+def _ledger_block(summary: dict[str, Any]) -> str:
+    if not summary["debits"]:
+        return ""
+    tone = {"BALANCED": "var(--good)", "TAMPERED": "var(--bad)"}.get(summary["parity"], "var(--warn)")
+    rows = "".join(f"<li><code>{_esc(path)}</code> <span class=\"muted\">debit</span></li>" for path in summary["debits"])
+    credit = (
+        "<li>negative control (red before, green after) <span class=\"muted\">credit</span></li>"
+        if summary["credits"]
+        else "<li class=\"muted\">no credit: the negative control did not prove the change</li>"
+    )
+    return (
+        f'<div class="callout" style="border-left-color:{tone}"><strong>Double-entry ledger: '
+        f'<span style="color:{tone}">{_esc(summary["parity"])}</span></strong>'
+        f"<ul>{rows}{credit}</ul></div>"
+    )
+
+
+def render_proof_card(verdict: core.Verdict, debits: list[str] | None = None) -> str:
+    """A 1200x630 share image of the verdict, in the Nous Research / Hermes palette."""
+    label, _blurb, color = STATUS_COPY.get(verdict.status, (verdict.status.upper(), verdict.reason, "#8b95a5"))
+    ledger = ledger_summary(verdict, debits)
+    before = "GREEN" if (verdict.before and verdict.before.green) else "RED"
+    after = "GREEN" if (verdict.current and verdict.current.green) else "RED"
+    ast_text = "100% intact" if not verdict.tamper else f"{len(verdict.tamper)} finding(s)"
+    ast_color = "#35d07f" if not verdict.tamper else "#ff6b6b"
+    parity_color = {"BALANCED": "#35d07f", "TAMPERED": "#ff6b6b"}.get(ledger["parity"], "#ffb454")
+    created = core.time.strftime("%Y-%m-%d %H:%M:%S UTC", core.time.gmtime(verdict.created_at))
+    first_fail = (verdict.failed_before[0] if verdict.failed_before else "no failing test identified").split("::")[-1]
+    command = _esc((verdict.command or "none")[:70])
+    fail = _esc(first_fail[:70])
+    digest = _esc(verdict.certificate_id)
+
+    def tile(x: int, title: str, value: str, tone: str) -> str:
+        return (
+            f'<rect x="{x}" y="0" width="240" height="110" rx="12" fill="#0f0f18" stroke="rgba(255,215,0,0.14)"/>'
+            f'<text x="{x + 24}" y="36" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" '
+            f'fill="#9a968e" letter-spacing="1">{_esc(title)}</text>'
+            f'<text x="{x + 24}" y="80" font-family="Inter, sans-serif" font-size="24" font-weight="800" '
+            f'fill="{tone}">{_esc(value)}</text>'
+        )
+
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#FFD700" fill-opacity="0.05"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="#07070d"/><rect width="1200" height="630" fill="url(#grid)"/>
+  <rect x="30" y="30" width="1140" height="570" rx="20" fill="none" stroke="#FFD700" stroke-opacity="0.25" stroke-width="1.5"/>
+  <text x="80" y="98" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600" fill="#FFD700" letter-spacing="4">NOUS RESEARCH // HERMES AGENT</text>
+  <text x="80" y="145" font-family="Inter, sans-serif" font-size="34" font-weight="800" fill="#e8e4dc">RedGreen: Proof of Fix</text>
+  <rect x="870" y="75" width="250" height="46" rx="23" fill="{color}" fill-opacity="0.12" stroke="{color}" stroke-width="1.5"/>
+  <circle cx="898" cy="98" r="6" fill="{color}"/>
+  <text x="918" y="104" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700" fill="{color}" letter-spacing="1">{_esc(label)}</text>
+  <g transform="translate(80,190)">
+    {tile(0, "WITHOUT THE CHANGE", before, "#ff6b6b" if before == "RED" else "#35d07f")}
+    {tile(265, "WITH THE CHANGE", after, "#35d07f" if after == "GREEN" else "#ff6b6b")}
+    {tile(530, "AST INTEGRITY", ast_text, ast_color)}
+    {tile(795, "LEDGER PARITY", ledger["parity"], parity_color)}
+  </g>
+  <g transform="translate(80,335)">
+    <rect width="1040" height="140" rx="12" fill="#07070d" stroke="rgba(255,215,0,0.14)"/>
+    <text x="30" y="38" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600" fill="#9a968e" letter-spacing="1">COMMAND</text>
+    <text x="30" y="65" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#e8e4dc">{command}</text>
+    <text x="30" y="100" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600" fill="#9a968e" letter-spacing="1">FAILS WITHOUT THE FIX</text>
+    <text x="30" y="124" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#FFD700">{fail}</text>
+  </g>
+  <g transform="translate(80,515)">
+    <text x="0" y="20" font-family="JetBrains Mono, monospace" font-size="12" fill="#9a968e">ATTESTATION: sha256:{digest}</text>
+    <text x="0" y="42" font-family="Inter, sans-serif" font-size="12" fill="#64748b">{_esc(created)} · {len(ledger["debits"])} debit(s) · {ledger["credits"]} credit · zero dependencies · local</text>
+  </g>
+</svg>"""
+
+
+def render_certificate(verdict: core.Verdict, *, diff_stat: str = "", debits: list[str] | None = None) -> str:
     label, _blurb, color = STATUS_COPY.get(verdict.status, (verdict.status.upper(), verdict.reason, "#8b95a5"))
     headline = HEADLINES.get(verdict.status, verdict.reason)
     changed = ", ".join(verdict.changed_test_files) or "none"
@@ -94,6 +185,7 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
             + "</ul></div>"
         )
     diff_block = f'<pre class="diff">{_esc(diff_stat)}</pre>' if diff_stat else ""
+    ledger_html = _ledger_block(ledger_summary(verdict, debits))
     created = core.time.strftime("%Y-%m-%d %H:%M:%S UTC", core.time.gmtime(verdict.created_at))
     before = _panel("without the change (new tests overlaid)", verdict.before, "bad")
     after = _panel("with the change", verdict.current, "good")
@@ -106,17 +198,19 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
 <title>RedGreen · {_esc(label)} · {_esc(_short(fingerprint, 8))}</title>
 <style>
   :root {{
-    --bg: #0b0e14; --panel: #121722; --line: #232b3b; --text: #e8edf7;
-    --muted: #8b95a5; --good: #35d07f; --bad: #ff6b6b; --warn: #ffb454; --accent: {color};
+    --bg: #07070d; --panel: #0f0f18; --line: rgba(255,215,0,.14); --text: #e8e4dc;
+    --muted: #9a968e; --gold: #FFD700; --good: #35d07f; --bad: #ff6b6b; --warn: #ffb454; --accent: {color};
   }}
   * {{ box-sizing: border-box; }}
   body {{ margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+    background-image: radial-gradient(rgba(255,215,0,.035) 1px, transparent 1px); background-size: 32px 32px;
+    font: 15px/1.55 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
+  .eyebrow-top {{ font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: .3em; color: var(--gold); margin-bottom: 10px; }}
   .wrap {{ max-width: 1060px; margin: 0 auto; padding: 42px 24px 64px; }}
   .top {{ display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }}
   .mark {{ width: 34px; height: 34px; }}
   .brand {{ letter-spacing: .22em; font-weight: 700; font-size: 13px; color: var(--muted); }}
-  .brand b {{ color: var(--text); }}
+  .brand b {{ color: var(--gold); }}
   h1 {{ font-size: 34px; line-height: 1.1; margin: 0 0 8px; letter-spacing: -.02em; }}
   .verdict {{ display: inline-flex; align-items: center; gap: 10px; padding: 7px 13px;
     border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 999px;
@@ -128,7 +222,7 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
   @media (max-width: 760px) {{ .meta {{ grid-template-columns: 1fr 1fr; }} }}
   .meta div {{ background: var(--panel); padding: 13px 15px; }}
   .meta .k {{ font-size: 10px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }}
-  .meta .v {{ margin-top: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+  .meta .v {{ margin-top: 4px; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
     overflow-wrap: anywhere; }}
   .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }}
   @media (max-width: 820px) {{ .grid {{ grid-template-columns: 1fr; }} }}
@@ -140,33 +234,33 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
   .state {{ font-size: 20px; font-weight: 700; text-transform: capitalize; }}
   .panel.good .state {{ color: var(--good); }}
   .panel.bad .state {{ color: var(--bad); }}
-  .exit {{ font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); border: 1px solid var(--line);
+  .exit {{ font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--muted); border: 1px solid var(--line);
     padding: 4px 8px; border-radius: 7px; white-space: nowrap; }}
   .summary {{ color: var(--muted); font-size: 13px; margin: 10px 0 12px; }}
-  pre {{ margin: 0; background: #0a0d13; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
-    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: #cdd6e6;
+  pre {{ margin: 0; background: #07070d; border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+    font: 12px/1.5 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; color: #d9d4c9;
     max-height: 340px; overflow: auto; white-space: pre-wrap; word-break: break-word; }}
   .callout {{ border: 1px solid var(--line); border-left: 2px solid var(--warn); background: var(--panel);
     border-radius: 10px; padding: 12px 14px; margin: 18px 0; color: var(--muted); }}
   .callout ul {{ margin: 8px 0 0 18px; padding: 0; }}
-  .rule {{ margin: 30px 0 14px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: #0e131d; }}
+  .rule {{ margin: 30px 0 14px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: #0f0f18; }}
   .rule strong {{ color: var(--text); }}
   .rule p {{ margin: 6px 0 0; color: var(--muted); }}
   .diff {{ margin-top: 14px; max-height: 240px; }}
   footer {{ margin-top: 28px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; }}
   .muted {{ color: var(--muted); }}
-  code {{ font-family: ui-monospace, monospace; color: #dbe4f5; }}
+  code {{ font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--gold); }}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
     <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <circle cx="20" cy="20" r="16" stroke="#2b3447" stroke-width="2"/>
+      <circle cx="20" cy="20" r="16" stroke="#FFD700" stroke-opacity=".35" stroke-width="2"/>
       <path d="M20 4a16 16 0 0 1 0 32V4Z" fill="{color}" opacity=".9"/>
-      <circle cx="20" cy="20" r="4" fill="#0b0e14" stroke="#0b0e14"/>
+      <circle cx="20" cy="20" r="4" fill="#07070d" stroke="#07070d"/>
     </svg>
-    <div class="brand">REDGREEN · <b>PROOF OF FIX</b></div>
+    <div><div class="eyebrow-top">NOUS RESEARCH // HERMES AGENT</div><div class="brand">REDGREEN · <b>PROOF OF FIX</b></div></div>
   </div>
 
   <div class="verdict"><span class="dot"></span>{_esc(label)}</div>
@@ -188,6 +282,8 @@ def render_certificate(verdict: core.Verdict, *, diff_stat: str = "") -> str:
   </div>
 
   {tamper}
+
+  {ledger_html}
 
   <div class="rule">
     <strong>The rule</strong>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RedGreen Demo Film</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#07070d; --gold:#FFD700; --text:#e8e4dc; --muted:#9a968e; --red:#ff6b6b; --green:#34d27b; --amber:#ffb454; --cyan:#FFD700; --line:rgba(255,215,0,.14); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:1920px; height:1080px; overflow:hidden; background:var(--bg); color:var(--text); font-family:Inter, sans-serif; }
+  .abs { position:absolute; }
+  #bg { inset:0; background-image: radial-gradient(rgba(255,215,0,.07) 1.4px, transparent 1.4px); background-size:40px 40px; }
+  #glowR { width:1100px; height:1100px; border-radius:50%; background:radial-gradient(circle, rgba(255,107,107,.13), transparent 62%); left:-250px; top:-250px; }
+  #glowG { width:1100px; height:1100px; border-radius:50%; background:radial-gradient(circle, rgba(52,210,123,.12), transparent 62%); right:-250px; bottom:-300px; }
+  #flash { inset:0; opacity:0; }
+  #vignette { inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.6)); pointer-events:none; }
+
+  #hook { inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px; }
+  .hk { font-size:80px; font-weight:900; letter-spacing:-3px; white-space:nowrap; }
+  .hk span { display:inline-block; margin-right:24px; }
+  .hk .g { color:var(--green); } .hk .r { color:var(--red); }
+  #hkTag { font-family:'JetBrains Mono'; font-size:25px; color:var(--gold); letter-spacing:7px; }
+
+  #stage { inset:0; transform-origin:50% 50%; }
+  #term { left:90px; top:70px; width:1060px; height:780px; background:#0f0f18; border:1px solid var(--line); border-radius:18px; box-shadow:0 40px 120px rgba(0,0,0,.7); overflow:hidden; }
+  #termBar { height:48px; display:flex; align-items:center; gap:10px; padding:0 20px; border-bottom:1px solid var(--line); background:#141424; }
+  .dot { width:14px; height:14px; border-radius:50%; }
+  #termTitle { margin-left:16px; font-family:'JetBrains Mono'; font-size:16px; color:var(--muted); }
+  #termBody { position:absolute; left:28px; right:28px; bottom:26px; font-family:'JetBrains Mono'; font-size:21px; line-height:1.6; }
+  .tl { white-space:pre-wrap; word-break:break-word; }
+  .p-agent { color:var(--amber); } .p-repo, .p-baseline { color:var(--muted); }
+  .p-redgreen { color:var(--cyan); font-weight:600; } .p-ast { color:var(--red); font-weight:700; }
+  .t-proven { color:var(--green); font-weight:700; } .t-bad { color:var(--red); font-weight:700; } .t-weak { color:var(--amber); font-weight:700; }
+  .cursor { display:inline-block; width:11px; height:22px; background:#fff; vertical-align:-4px; margin-left:2px; }
+
+  #panel { left:1190px; top:70px; width:640px; height:780px; }
+  .card { position:absolute; inset:0; background:#0f0f18; border:1px solid var(--line); border-radius:18px; padding:34px 36px; box-shadow:0 40px 120px rgba(0,0,0,.6); }
+  .ptitle { font-family:'JetBrains Mono'; font-size:15px; letter-spacing:4px; color:var(--muted); margin-bottom:24px; }
+
+  .run { border:1px solid var(--line); border-radius:14px; padding:22px 24px; margin-bottom:22px; background:#07070d; position:relative; overflow:hidden; }
+  .run .lab { font-family:'JetBrains Mono'; font-size:14px; letter-spacing:3px; color:var(--muted); }
+  .run .big { font-size:74px; font-weight:900; letter-spacing:-2px; margin-top:6px; }
+  .run .sum { font-family:'JetBrains Mono'; font-size:20px; color:var(--muted); margin-top:4px; }
+  .run .exit { position:absolute; right:22px; top:20px; font-family:'JetBrains Mono'; font-size:15px; padding:4px 12px; border:1px solid var(--line); border-radius:8px; color:var(--muted); }
+  .run .bar { position:absolute; left:0; right:0; top:0; height:5px; }
+  #verdictRow { margin-top:8px; text-align:center; font-size:56px; font-weight:900; letter-spacing:1px; }
+
+  .code { font-family:'JetBrains Mono'; font-size:19px; line-height:1.95; }
+  .cl { white-space:pre; padding:0 10px; border-radius:6px; }
+  .cl.del { background:rgba(255,107,107,.12); color:#ff9a9a; } .cl.add { background:rgba(52,210,123,.12); color:#7be3a8; }
+  .cl.ctx { color:#c9ced9; }
+  .counters { position:absolute; left:36px; right:36px; bottom:34px; display:flex; gap:20px; }
+  .cbox { flex:1; border:1px solid var(--line); border-radius:14px; padding:18px 20px; background:#07070d; }
+  .cbox .lab { font-family:'JetBrains Mono'; font-size:13px; letter-spacing:2px; color:var(--muted); }
+  .cbox .num { font-size:78px; font-weight:900; line-height:1; margin-top:8px; }
+  .cbox .note { font-family:'JetBrains Mono'; font-size:15px; margin-top:8px; }
+
+  #stamp { left:50%; top:46%; padding:20px 52px; border:8px solid; border-radius:18px; font-size:104px; font-weight:900; letter-spacing:6px; white-space:nowrap; }
+
+  #cert { inset:0; display:flex; align-items:center; justify-content:center; perspective:1800px; }
+  #certWrap { width:1140px; height:880px; border-radius:22px; overflow:hidden; position:relative; box-shadow:0 60px 160px rgba(0,0,0,.8), 0 0 90px rgba(52,210,123,.16); margin-top:-48px; }
+  #certWrap img { width:1140px; display:block; }
+  #shine { position:absolute; top:-50%; width:240px; height:200%; background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent); transform:rotate(18deg); }
+  #certHead { position:absolute; top:28px; left:0; right:0; text-align:center; font-family:'JetBrains Mono'; font-size:22px; letter-spacing:8px; color:var(--green); }
+
+  #cardScene { inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; perspective:1800px; }
+  #cardHead { position:absolute; top:50px; left:0; right:0; text-align:center; font-family:'JetBrains Mono'; font-size:22px; letter-spacing:8px; color:var(--gold); }
+  #cardWrap2 { width:1200px; height:630px; position:relative; border-radius:22px; overflow:hidden; box-shadow:0 60px 160px rgba(0,0,0,.8), 0 0 90px rgba(255,215,0,.12); margin-top:-40px; }
+  #cardWrap2 img { width:1200px; height:630px; display:block; }
+  #shine2 { position:absolute; top:-50%; width:240px; height:200%; background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent); transform:rotate(18deg); }
+  #ledgerStrip { margin-top:34px; display:flex; gap:22px; align-items:center; font-family:'JetBrains Mono'; font-size:24px; }
+  #ledgerStrip .deb { color:var(--red); padding:10px 18px; border:1px solid rgba(255,107,107,.45); border-radius:10px; background:rgba(255,107,107,.08); }
+  #ledgerStrip .cred { color:var(--green); padding:10px 18px; border:1px solid rgba(52,210,123,.5); border-radius:10px; background:rgba(52,210,123,.08); }
+  #ledgerStrip .arrow { color:var(--muted); } #ledgerStrip .bal { color:var(--green); font-weight:700; font-size:30px; }
+  #stats { display:flex; gap:60px; margin-bottom:46px; }
+  .stat { width:380px; text-align:center; } .stat .v { font-size:104px; font-weight:900; color:var(--gold); letter-spacing:-3px; }
+  .stat .v.dim { color:var(--muted); } .stat .d { font-family:'JetBrains Mono'; font-size:20px; color:var(--muted); margin-top:4px; }
+  #outro { inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #brand { font-size:140px; font-weight:900; letter-spacing:-6px; display:flex; align-items:center; gap:0; }
+  #brand .r { color:var(--red); } #brand .g { color:var(--green); }
+  #sub { font-family:'JetBrains Mono'; font-size:26px; color:var(--muted); margin-top:14px; letter-spacing:4px; }
+  #points { display:flex; gap:26px; margin-top:54px; }
+  .pt { font-family:'JetBrains Mono'; font-size:24px; padding:14px 26px; border:1px solid var(--line); border-radius:12px; background:#0f0f18; }
+  #install { margin-top:34px; font-family:'JetBrains Mono'; font-size:30px; padding:20px 34px; border:1px solid rgba(255,215,0,.3); border-radius:14px; background:#0f0f18; }
+  #install .p { color:var(--gold); }
+
+  #cap { left:0; right:0; bottom:46px; display:flex; justify-content:center; }
+  #capIn { max-width:1500px; font-size:36px; font-weight:600; text-align:center; padding:14px 30px; border-radius:14px; background:rgba(5,5,10,.84); border:1px solid var(--line); line-height:1.3; }
+  #progress { left:0; bottom:0; height:5px; background:var(--gold); }
+  #disclaimer { right:36px; top:22px; font-family:'JetBrains Mono'; font-size:15px; color:var(--muted); letter-spacing:2px; }
+</style>
+</head>
+<body>
+<div id="bg" class="abs"></div>
+<div id="glowR" class="abs"></div><div id="glowG" class="abs"></div>
+<div id="flash" class="abs"></div>
+
+<div id="hook" class="abs">
+  <div id="hkTag">NOUS RESEARCH // HERMES AGENT · REAL ENGINE · REAL PYTEST · SCRIPTED AGENT</div>
+  <div id="hk1" class="hk"></div>
+  <div id="hk2" class="hk"></div>
+</div>
+
+<div id="stage" class="abs">
+  <div id="term" class="abs">
+    <div id="termBar"><div class="dot" style="background:#ff6b6b"></div><div class="dot" style="background:#ffb454"></div><div class="dot" style="background:#34d27b"></div><div id="termTitle">python3 demo.py · redgreen engine · real pytest</div></div>
+    <div id="termBody"></div>
+  </div>
+  <div id="panel" class="abs">
+    <div id="pRuns" class="card">
+      <div class="ptitle">NEGATIVE CONTROL · SAME COMMAND, TWO TREES</div>
+      <div class="run"><div class="bar" id="barA"></div><div class="exit" id="exitA">exit 0</div><div class="lab">WITHOUT THE CHANGE</div><div class="big" id="bigA">GREEN</div><div class="sum" id="sumA"></div></div>
+      <div class="run"><div class="bar" id="barB"></div><div class="exit" id="exitB">exit 0</div><div class="lab">WITH THE CHANGE</div><div class="big" id="bigB">GREEN</div><div class="sum" id="sumB"></div></div>
+      <div id="verdictRow"></div>
+    </div>
+    <div id="pDiff" class="card">
+      <div class="ptitle">tests/test_pricing.py · AST GUARD</div>
+      <div class="code" id="diffCode"></div>
+      <div class="counters">
+        <div class="cbox"><div class="lab">ASSERT COUNT (TEXT)</div><div class="num" id="textNum">3</div><div class="note" id="textNote" style="color:var(--muted)">unchanged — misses it</div></div>
+        <div class="cbox"><div class="lab">CONSTANT ASSERTS (AST)</div><div class="num" id="astNum">0</div><div class="note" id="astNote" style="color:var(--muted)">syntax tree</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stamp" class="abs"></div>
+
+<div id="cert" class="abs">
+  <div id="certHead">THE RECEIPT, NOT THE TRANSCRIPT</div>
+  <div id="certWrap"><img id="certImg" alt=""><div id="shine"></div></div>
+</div>
+
+<div id="cardScene" class="abs">
+  <div id="cardHead">DOUBLE-ENTRY LEDGER · PROOF CARD</div>
+  <div id="cardWrap2"><img id="cardImg" alt=""><div id="shine2"></div></div>
+  <div id="ledgerStrip"><span class="deb">− pricing.py</span><span class="deb">− tests/test_pricing.py</span><span class="arrow">→</span><span class="cred">+ negative control</span><span class="arrow">=</span><span class="bal" id="balTxt">BALANCED</span></div>
+</div>
+
+<div id="outro" class="abs">
+  <div id="stats">
+    <div class="stat"><div class="v" id="s1">0/30</div><div class="d">tamper caught · AST guard</div></div>
+    <div class="stat"><div class="v dim" id="s2">0/30</div><div class="d">same scenarios · text counter</div></div>
+    <div class="stat"><div class="v" id="s3">0</div><div class="d">false alarms · 20 honest edits</div></div>
+  </div>
+  <div id="brand"><span class="r">Red</span><span class="g">Green</span></div>
+  <div id="sub">A TEST ONLY PROVES A FIX WHEN IT FAILS WITHOUT THE FIX</div>
+  <div id="points"><div class="pt">negative control</div><div class="pt">AST tamper guard</div><div class="pt">signed certificate</div></div>
+  <div id="install"><span class="p">$ </span><span id="instTxt"></span></div>
+</div>
+
+<div id="vignette" class="abs"></div>
+<div id="cap" class="abs"><div id="capIn"></div></div>
+<div id="progress" class="abs"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a=0, b=1) => Math.max(a, Math.min(b, x));
+const eo = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const eio = (x) => { x = clamp(x); return x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3) / 2; };
+const back = (x) => { x = clamp(x); const c = 1.70158, c3 = c + 1; return 1 + c3*Math.pow(x-1,3) + c*Math.pow(x-1,2); };
+const P = (t, s, d) => clamp((t - s) / d);
+const lerp = (a, b, k) => a + (b - a) * k;
+function show(el, o, tf) { el.style.opacity = o; el.style.display = o <= 0.001 ? 'none' : ''; if (tf !== undefined) el.style.transform = tf; }
+const sentAt = (id, k) => { const a = SENT[id]; return a[Math.min(k, a.length - 1)]; };
+
+let D, SC = {}, SENT = {}, TOTAL = 0, LINES = [];
+
+function init(data) {
+  D = data; TOTAL = data.total;
+  for (const s of data.scenes) { SC[s.id] = s; SENT[s.id] = s.sentences.map(x => x.start); }
+  const tr = data.transcript;
+  // transcript indices from demo.py: 2 user, 3 ran(1), 4 fixed, 5 UNPROVEN, 6 proves nothing,
+  // 7 shortcut, 8 ran, 9 fixed, 10 TAMPERED, 11 ast finding, 12 honest, 13 ran, 14 fixed, 15 PROVEN
+  const plan = [
+    [2, sentAt('hollow',0) + .2], [3, sentAt('hollow',1) + .3], [4, sentAt('hollow',1) + 1.9],
+    [5, sentAt('hollow',3) + 1.2],
+    [7, sentAt('tamper',0) + .2], [8, sentAt('tamper',1) + 1.6], [9, sentAt('tamper',1) + 2.4],
+    [10, sentAt('tamper',3) + 3.4], [11, sentAt('tamper',3) + 3.9],
+    [12, sentAt('proven',0) + .1], [13, sentAt('proven',1) + .2], [15, sentAt('proven',3) + .2],
+  ];
+  const body = $('termBody');
+  plan.forEach(([idx, at]) => {
+    const e = tr[idx]; const div = document.createElement('div');
+    let cls = 'tl p-' + e.prefix.replace(/[\[\] ]/g, '').replace('astguard', 'ast');
+    const txt = e.prefix + ' ' + e.text;
+    if (/PROVEN ·/.test(e.text) && !/UNPROVEN/.test(e.text)) cls += ' t-proven';
+    if (/TAMPERED/.test(e.text)) cls += ' t-bad';
+    if (/UNPROVEN/.test(e.text)) cls += ' t-weak';
+    div.className = cls; body.appendChild(div);
+    LINES.push({ el: div, at, text: txt, typed: e.prefix === '[agent]' && /User:|Shortcut|Fine/.test(e.text) });
+  });
+  // diff panel
+  const rows = [
+    ['ctx','def test_small_order():'],
+    ['del','-   assert apply_discount(40) == 32.0'],
+    ['add','+   assert True'],
+    ['ctx','def test_zero_percent():'],
+    ['del','-   assert apply_discount(80, percent=0) == 80.0'],
+    ['add','+   assert True'],
+    ['ctx','def test_discount_is_a_number():'],
+    ['ctx','    assert apply_discount(100) == 80.0'],
+  ];
+  const dc = $('diffCode');
+  rows.forEach((r, i) => { const d = document.createElement('div'); d.className = 'cl ' + r[0]; d.id = 'dl' + i; d.textContent = r[1].length > 46 ? r[1].slice(0, 45) + '…' : r[1]; dc.appendChild(d); });
+  $('certImg').src = data.cert_img; $('cardImg').src = data.card_img;
+}
+
+function typeOut(text, t, at, cps) { const n = Math.floor((t - at) * cps); return n >= text.length ? text : text.slice(0, Math.max(0, n)); }
+
+function caption(t) {
+  let txt = '', o = 0;
+  for (const s of D.scenes) for (const c of s.sentences) {
+    if (t >= c.start - 0.05 && t < c.end + 0.25) { txt = c.text; o = Math.min(eo(P(t, c.start - 0.05, 0.25)), 1 - P(t, c.end, 0.25)); }
+  }
+  $('capIn').textContent = txt; show($('cap'), txt ? o : 0, `translateY(${(1 - o) * 14}px)`);
+}
+
+function setRun(prefix, green, summary, k) {
+  const big = $('big' + prefix), bar = $('bar' + prefix);
+  big.textContent = green ? 'GREEN' : 'RED';
+  big.style.color = green ? 'var(--green)' : 'var(--red)';
+  bar.style.background = green ? 'var(--green)' : 'var(--red)';
+  $('sum' + prefix).textContent = summary;
+  $('exit' + prefix).textContent = green ? 'exit 0' : 'exit 1';
+  $('big' + prefix).parentElement.style.opacity = clamp(k);
+  $('big' + prefix).parentElement.style.transform = `translateY(${(1 - clamp(k)) * 30}px)`;
+}
+
+function renderAt(t) {
+  const H = SC.hook, Ho = SC.hollow, Ta = SC.tamper, Pv = SC.proven, Ce = SC.cert, Ca = SC.card, Ou = SC.outro;
+  const R = D.runs;
+  $('bg').style.backgroundPosition = `${t * 9}px ${t * 5}px`;
+  $('glowR').style.transform = `translate(${Math.sin(t * .21) * 120}px, ${Math.cos(t * .17) * 80}px)`;
+  $('glowG').style.transform = `translate(${Math.cos(t * .19) * 120}px, ${Math.sin(t * .15) * 80}px)`;
+  $('progress').style.width = (t / TOTAL * 1920) + 'px';
+
+  // ---- hook
+  const hOut = P(t, Ho.start - .35, .45);
+  show($('hook'), Math.min(eo(P(t, 0, .6)), 1 - hOut), `scale(${1 + t * .012 + hOut * .15})`);
+  if (t < Ho.start + .2) {
+    const w1 = ['Your', 'agent', 'says:', 'fixed,', 'all', 'tests', 'pass.'];
+    $('hk1').innerHTML = w1.map((w, i) => { const k = eo(P(t, H.start + .1 + i * .11, .45)); return `<span style="opacity:${k};transform:translateY(${(1-k)*60}px)">${w}</span>`; }).join('');
+    const s2 = sentAt('hook', 1);
+    const w2 = ['But', 'what', 'if', 'it', 'passed', 'before', 'the', 'fix,', 'too?'];
+    $('hk2').innerHTML = w2.map((w, i) => { const k = back(P(t, s2 + i * .1, .5)); const cls = (w === 'before') ? 'r' : ''; return `<span class="${cls}" style="opacity:${clamp(k)};transform:translateY(${(1-k)*70}px) scale(${.8 + .2*k})">${w}</span>`; }).join('');
+    $('hkTag').style.opacity = eo(P(t, .1, .6)) * .9;
+  }
+
+  // ---- stage
+  const stIn = P(t, Ho.start - .25, .8), stOut = P(t, Ce.start - .3, .5);
+  const stO = Math.min(eo(stIn), 1 - stOut);
+  const push = eio(P(t, sentAt('tamper', 3), 1.1)) * (1 - eio(P(t, Pv.start - .3, 1.0)));
+  const scale = lerp(.92, 1, eo(stIn)) + (t - Ho.start) * .0006 + push * .05 - stOut * .08;
+  show($('stage'), stO, `translate(${-push * 90}px, ${(1 - eo(stIn)) * 60 - push * 10}px) scale(${scale}) rotateX(${(1 - eo(stIn)) * 8}deg)`);
+
+  if (stO > 0) {
+    LINES.forEach(L => {
+      if (t < L.at) { L.el.style.display = 'none'; return; }
+      L.el.style.display = '';
+      const k = eo(P(t, L.at, .3)); L.el.style.opacity = k; L.el.style.transform = `translateX(${(1 - k) * -18}px)`;
+      const txt = L.typed ? typeOut(L.text, t, L.at, 55) : L.text;
+      L.el.textContent = txt;
+      if (L.typed && txt.length < L.text.length) { const c = document.createElement('span'); c.className = 'cursor'; L.el.appendChild(c); }
+    });
+
+    // panels: runs (hollow) -> diff (tamper) -> runs (proven)
+    const tStart = sentAt('tamper', 1) - .4, tEnd = sentAt('proven', 1) - .2;
+    const runsO = Math.min(eo(P(t, sentAt('hollow', 2) - .3, .6)), 1 - P(t, tStart, .4)) + eo(P(t, tEnd, .5)) * (t > tEnd ? 1 : 0);
+    const diffO = Math.min(eo(P(t, tStart + .1, .6)), 1 - P(t, tEnd - .3, .4));
+    show($('pRuns'), clamp(runsO), `translateX(${(1 - clamp(runsO)) * 60}px)`);
+    show($('pDiff'), clamp(diffO), `translateY(${(1 - clamp(diffO)) * 40}px)`);
+
+    // runs content: act 1 (hollow) then act 3 (proven)
+    const inProven = t >= tEnd;
+    const run = inProven ? R[2] : R[0];
+    const a0 = inProven ? sentAt('proven', 2) : sentAt('hollow', 2);
+    setRun('A', run.before_green, run.before, back(P(t, a0, .5)));
+    setRun('B', run.after_green, run.after, back(P(t, a0 + 1.1, .5)));
+    const vAt = inProven ? sentAt('proven', 3) : sentAt('hollow', 3);
+    const vk = eo(P(t, vAt, .4));
+    const vr = $('verdictRow');
+    vr.textContent = inProven ? 'PROVEN' : 'UNPROVEN';
+    vr.style.color = inProven ? 'var(--green)' : 'var(--amber)';
+    vr.style.opacity = vk; vr.style.transform = `scale(${lerp(.8, 1, back(P(t, vAt, .5)))})`;
+
+    // diff animation
+    const e0 = sentAt('tamper', 1) + .5;
+    [1, 4].forEach((i, j) => { const del = $('dl' + i), add = $('dl' + (i + 1));
+      const kd = eo(P(t, e0 + j * .7, .5)), ka = back(P(t, e0 + .5 + j * .7, .5));
+      del.style.opacity = kd; add.style.opacity = clamp(ka); add.style.transform = `translateX(${(1 - ka) * 40}px)`; });
+    [0, 3, 6, 7].forEach(i => { $('dl' + i).style.opacity = eo(P(t, e0 - .3, .5)); });
+    const aT = sentAt('tamper', 3);
+    const textK = P(t, sentAt('tamper', 2) + .6, .5), astK = eo(P(t, aT + .5, 1.2));
+    $('textNote').textContent = textK > 0 ? 'unchanged — a text counter sees no problem' : '';
+    $('textNum').style.color = textK > 0 ? 'var(--green)' : 'var(--text)';
+    $('astNum').textContent = Math.round(2 * astK);
+    $('astNum').style.color = astK > 0 ? 'var(--red)' : 'var(--text)';
+    $('astNote').textContent = astK > 0.5 ? 'weakened to assert True' : 'syntax tree';
+    $('astNote').style.color = astK > 0.5 ? 'var(--red)' : 'var(--muted)';
+  }
+
+  // flashes + stamps
+  const sT = SENT.tamper[3] + 3.4;  // tamper line time
+  const sH = sentAt('hollow', 3) + .3, sP = sentAt('proven', 3) + .4;
+  const fl = $('flash');
+  let fo = 0, fc = '';
+  if (t >= sT) { fo = clamp(P(t, sT, .15) * (1 - P(t, sT + .5, 1.6))) * .3; fc = 'radial-gradient(ellipse at center, rgba(255,107,107,0), rgba(255,107,107,1))'; }
+  if (t >= sP) { fo = clamp(P(t, sP, .15) * (1 - P(t, sP + .5, 1.4))) * .26; fc = 'radial-gradient(ellipse at center, rgba(52,210,123,0), rgba(52,210,123,1))'; }
+  fl.style.background = fc; fl.style.opacity = fo;
+
+  let so = 0, txt = '', col = '', t0 = 0;
+  if (t >= sH && t < Ta.start) { txt = 'UNPROVEN'; col = '#ffb454'; t0 = sH; so = Math.min(clamp(P(t, sH, .3) * 1.5), 1 - P(t, Ta.start - .5, .4)); }
+  if (t >= sT && t < sT + 2.4) { txt = 'TAMPERED'; col = '#ff6b6b'; t0 = sT; so = Math.min(clamp(P(t, sT, .3) * 1.5), 1 - P(t, sT + 2.0, .4)); }
+  if (t >= sP && t < sP + 2.2) { txt = 'PROVEN'; col = '#34d27b'; t0 = sP; so = Math.min(clamp(P(t, sP, .3) * 1.5), 1 - P(t, sP + 1.8, .4)); }
+  const st = $('stamp');
+  st.textContent = txt; st.style.color = col; st.style.borderColor = col; st.style.background = so ? 'rgba(8,10,16,.88)' : '';
+  show(st, so, `translate(-50%,-50%) rotate(-7deg) scale(${lerp(2.3, 1, eo(P(t, t0, .35)))})`);
+  const sh = (t >= sT && t < sT + .6) ? (1 - P(t, sT, .6)) : 0;
+  $('term').style.transform = `translateX(${Math.sin(t * 90) * 10 * sh}px)`;
+
+  // ---- certificate
+  const cIn = P(t, Ce.start - .2, 1.1), cOut = P(t, Ca.start - .3, .5);
+  const co = Math.min(eo(cIn), 1 - cOut);
+  show($('cert'), co);
+  if (co > 0) {
+    const k = eo(cIn);
+    $('certWrap').style.transform = `rotateX(${(1 - k) * 35}deg) rotateY(${Math.sin(t * .5) * 2.5}deg) translateY(${(1 - k) * 120}px) scale(${lerp(.82, 1, k) + (t - Ce.start) * .004 + cOut * .1})`;
+    $('certImg').style.marginTop = (-clamp((t - Ce.start - 1.2) / 5.5) * 130) + 'px';
+    $('shine').style.left = lerp(-400, 1500, P(t, Ce.start + .9, 1.6)) + 'px';
+    $('certHead').style.opacity = eo(P(t, Ce.start + .3, .6));
+  }
+
+  // ---- ledger + proof card
+  const kIn = P(t, Ca.start - .2, 1.1), kOut = P(t, Ou.start - .3, .5);
+  const ko = Math.min(eo(kIn), 1 - kOut);
+  show($('cardScene'), ko);
+  if (ko > 0) {
+    const k = eo(kIn);
+    $('cardWrap2').style.transform = `rotateX(${(1 - k) * 35}deg) rotateY(${Math.sin(t * .5) * 2.5}deg) translateY(${(1 - k) * 120}px) scale(${lerp(.82, 1, k) + (t - Ca.start) * .004 + kOut * .1})`;
+    $('shine2').style.left = lerp(-400, 1400, P(t, sentAt('card', 2), 1.5)) + 'px';
+    $('cardHead').style.opacity = eo(P(t, Ca.start + .3, .6));
+    [...$('ledgerStrip').children].forEach((c, i) => { const kk = back(P(t, sentAt('card', 1) + i * .35, .5)); c.style.opacity = clamp(kk); c.style.transform = `translateY(${(1 - kk) * 24}px)`; });
+  }
+
+  // ---- outro
+  const oIn = P(t, Ou.start - .1, .7);
+  show($('outro'), eo(oIn), `scale(${lerp(1.06, 1, eo(oIn))})`);
+  if (oIn > 0) {
+    const sA = sentAt('outro', 1);
+    [['s1', sA, 30 * eio(P(t, sA + .2, 1.4)), '/30', 0], ['s2', sA + 2.6, 20 * eio(P(t, sA + 2.8, 1.2)), '/30', 0]].forEach(([id, a, v, suf]) => {
+      const kk = back(P(t, a, .6)); const el = $(id); el.textContent = Math.round(v) + suf; el.parentElement.style.opacity = clamp(kk); el.parentElement.style.transform = `translateY(${(1 - kk) * 40}px)`; });
+    { const kk = back(P(t, sA + 1.6, .6)); $('s3').textContent = '0'; $('s3').parentElement.style.opacity = clamp(kk); $('s3').parentElement.style.transform = `translateY(${(1 - kk) * 40}px)`; }
+    const bk = back(P(t, sentAt('outro', 0) - .1, .7));
+    $('brand').style.opacity = clamp(bk); $('brand').style.transform = `scale(${lerp(.7, 1, bk)})`;
+    $('sub').style.opacity = eo(P(t, sentAt('outro', 0) + .6, .6));
+    [...$('points').children].forEach((c, i) => { const k = back(P(t, sentAt('outro', 2) + i * .35, .5)); c.style.opacity = clamp(k); c.style.transform = `translateY(${(1 - k) * 30}px)`; });
+    $('install').style.opacity = eo(P(t, sentAt('outro', 2) + .8, .5));
+    $('instTxt').textContent = typeOut('hermes plugins install shahaman098/hermes-redgreen --enable', t, sentAt('outro', 2) + .9, 36);
+  }
+  caption(t);
+}
+window.init = init; window.renderAt = renderAt;
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import core
+import report
 
 
 def git(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -198,6 +199,31 @@ class VerifyTests(RepoFixture):
         self.assertEqual(verdict.status, "proven", verdict.reason)
         self.assertIn("tests/test_cap.py", verdict.changed_test_files)
 
+    def test_assertion_weakened_to_constant_is_tamper(self) -> None:
+        self.fix(with_regression_test=False)
+        test_path = self.repo / "tests" / "test_pricing.py"
+        write(
+            test_path,
+            """
+            from pricing import apply_discount
+
+            def test_small_order():
+                assert True
+
+            def test_zero_percent():
+                assert apply_discount(80, percent=0) == 80.0
+            """,
+        )
+        verdict = core.verify(
+            repo=self.repo,
+            baseline_sha=self.baseline,
+            baseline_kind="head",
+            command="python3 -m pytest -q",
+            timeout=30,
+        )
+        self.assertEqual(verdict.status, "unproven_tamper", verdict.reason)
+        self.assertTrue(any("weakened to a constant" in t for t in verdict.tamper), verdict.tamper)
+
     def test_deleted_assertion_is_tamper(self) -> None:
         self.fix(with_regression_test=False)
         test_path = self.repo / "tests" / "test_pricing.py"
@@ -299,6 +325,57 @@ class GitHelpersTests(RepoFixture):
         self.assertTrue(core.is_test_path("tests/test_pricing.py"))
         self.assertTrue(core.is_test_path("src/app.test.tsx"))
         self.assertFalse(core.is_test_path("src/pricing.py"))
+
+
+
+
+class AstTamperUnitTests(unittest.TestCase):
+    def test_constant_swap_keeps_count_but_is_caught(self) -> None:
+        before = "def test_a():\n    assert is_valid == True\n"
+        after = "def test_a():\n    assert True\n"
+        self.assertTrue(any("weakened" in f for f in core.count_tamper(before, after)))
+
+    def test_comment_or_string_mentioning_assert_is_not_an_assertion(self) -> None:
+        before = "def test_a():\n    assert f(1) == 2\n    # assert later\n"
+        after = "def test_a():\n    assert f(1) == 2\n"
+        self.assertEqual(core.count_tamper(before, after), [])
+
+    def test_honest_test_addition_is_allowed(self) -> None:
+        before = "def test_a():\n    assert f(1) == 2\n"
+        after = before + "\ndef test_b():\n    assert f(2) == 4\n"
+        self.assertEqual(core.count_tamper(before, after), [])
+
+    def test_non_python_falls_back_to_text_counting(self) -> None:
+        before = "it('a', () => { expect(f(1)).toBe(2); expect(f(2)).toBe(4); });\n"
+        after = "it('a', () => { expect(f(1)).toBe(2); });\n"
+        self.assertTrue(core.count_tamper(before, after))
+
+
+class LedgerAndCardTests(unittest.TestCase):
+    def verdict(self, status: str) -> core.Verdict:
+        return core.Verdict(status=status, reason="r", command="pytest", certificate_id="ab" * 32)
+
+    def test_proven_balances_the_ledger(self) -> None:
+        summary = report.ledger_summary(self.verdict("proven"), ["a.py", "tests/test_a.py", "a.py"])
+        self.assertEqual(summary["parity"], "BALANCED")
+        self.assertEqual(summary["debits"], ["a.py", "tests/test_a.py"])
+        self.assertEqual(summary["credits"], 1)
+
+    def test_tamper_and_weak_leave_a_deficit(self) -> None:
+        self.assertEqual(report.ledger_summary(self.verdict("unproven_tamper"), ["a.py"])["parity"], "TAMPERED")
+        weak = report.ledger_summary(self.verdict("unproven_weak"), ["a.py"])
+        self.assertEqual((weak["parity"], weak["credits"]), ("DEFICIT", 0))
+
+    def test_proof_card_is_a_1200x630_svg(self) -> None:
+        svg = report.render_proof_card(self.verdict("proven"), ["a.py"])
+        self.assertIn('viewBox="0 0 1200 630"', svg)
+        self.assertIn("RedGreen: Proof of Fix", svg)
+        self.assertIn("sha256:" + "ab" * 32, svg)
+
+    def test_certificate_lists_debits(self) -> None:
+        html = report.render_certificate(self.verdict("proven"), debits=["pricing.py"])
+        self.assertIn("Double-entry ledger", html)
+        self.assertIn("pricing.py", html)
 
 
 if __name__ == "__main__":

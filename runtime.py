@@ -11,10 +11,10 @@ from typing import Any
 
 try:  # Hermes loads plugins as a namespace package.
     from . import core
-    from .report import render_certificate
+    from .report import render_certificate, render_proof_card
 except ImportError:  # Direct import while testing.
     import core  # type: ignore
-    from report import render_certificate  # type: ignore
+    from report import render_certificate, render_proof_card  # type: ignore
 
 
 MUTATION_TOOLS = frozenset(
@@ -214,8 +214,13 @@ def certificate_for(record: core.SessionRecord, verdict: core.Verdict) -> Path:
             diff_stat = result.stdout.strip() if result.returncode == 0 else ""
         except Exception:  # noqa: BLE001 - report generation is best effort
             diff_stat = ""
-    html = render_certificate(verdict, diff_stat=diff_stat)
+    debits = record.mutation_paths()
+    html = render_certificate(verdict, diff_stat=diff_stat, debits=debits)
     path = STORE.save_certificate(verdict, html)
+    try:
+        path.with_suffix(".svg").write_text(render_proof_card(verdict, debits), encoding="utf-8")
+    except OSError:  # the share card is a bonus, never block the certificate
+        pass
     record.last_verdict = verdict.to_dict()
     return path
 

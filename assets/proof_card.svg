@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#FFD700" fill-opacity="0.05"/></pattern>
+  </defs>
+  <rect width="1200" height="630" fill="#07070d"/><rect width="1200" height="630" fill="url(#grid)"/>
+  <rect x="30" y="30" width="1140" height="570" rx="20" fill="none" stroke="#FFD700" stroke-opacity="0.25" stroke-width="1.5"/>
+  <text x="80" y="98" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600" fill="#FFD700" letter-spacing="4">NOUS RESEARCH // HERMES AGENT</text>
+  <text x="80" y="145" font-family="Inter, sans-serif" font-size="34" font-weight="800" fill="#e8e4dc">RedGreen: Proof of Fix</text>
+  <rect x="870" y="75" width="250" height="46" rx="23" fill="#35d07f" fill-opacity="0.12" stroke="#35d07f" stroke-width="1.5"/>
+  <circle cx="898" cy="98" r="6" fill="#35d07f"/>
+  <text x="918" y="104" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700" fill="#35d07f" letter-spacing="1">PROVEN</text>
+  <g transform="translate(80,190)">
+    <rect x="0" y="0" width="240" height="110" rx="12" fill="#0f0f18" stroke="rgba(255,215,0,0.14)"/><text x="24" y="36" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" fill="#9a968e" letter-spacing="1">WITHOUT THE CHANGE</text><text x="24" y="80" font-family="Inter, sans-serif" font-size="24" font-weight="800" fill="#ff6b6b">RED</text>
+    <rect x="265" y="0" width="240" height="110" rx="12" fill="#0f0f18" stroke="rgba(255,215,0,0.14)"/><text x="289" y="36" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" fill="#9a968e" letter-spacing="1">WITH THE CHANGE</text><text x="289" y="80" font-family="Inter, sans-serif" font-size="24" font-weight="800" fill="#35d07f">GREEN</text>
+    <rect x="530" y="0" width="240" height="110" rx="12" fill="#0f0f18" stroke="rgba(255,215,0,0.14)"/><text x="554" y="36" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" fill="#9a968e" letter-spacing="1">AST INTEGRITY</text><text x="554" y="80" font-family="Inter, sans-serif" font-size="24" font-weight="800" fill="#35d07f">100% intact</text>
+    <rect x="795" y="0" width="240" height="110" rx="12" fill="#0f0f18" stroke="rgba(255,215,0,0.14)"/><text x="819" y="36" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" fill="#9a968e" letter-spacing="1">LEDGER PARITY</text><text x="819" y="80" font-family="Inter, sans-serif" font-size="24" font-weight="800" fill="#35d07f">BALANCED</text>
+  </g>
+  <g transform="translate(80,335)">
+    <rect width="1040" height="140" rx="12" fill="#07070d" stroke="rgba(255,215,0,0.14)"/>
+    <text x="30" y="38" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600" fill="#9a968e" letter-spacing="1">COMMAND</text>
+    <text x="30" y="65" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#e8e4dc">python3 -m pytest -q</text>
+    <text x="30" y="100" font-family="JetBrains Mono, monospace" font-size="12" font-weight="600" fill="#9a968e" letter-spacing="1">FAILS WITHOUT THE FIX</text>
+    <text x="30" y="124" font-family="JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#FFD700">test_discount_is_capped_at_fifty</text>
+  </g>
+  <g transform="translate(80,515)">
+    <text x="0" y="20" font-family="JetBrains Mono, monospace" font-size="12" fill="#9a968e">ATTESTATION: sha256:84e397a24fb1c1b61230dc6986d1ff55131d520ce9e07535233b0f1260238fe7</text>
+    <text x="0" y="42" font-family="Inter, sans-serif" font-size="12" fill="#64748b">2026-11-11 18:57:14 UTC · 2 debit(s) · 1 credit · zero dependencies · local</text>
+  </g>
+</svg>
