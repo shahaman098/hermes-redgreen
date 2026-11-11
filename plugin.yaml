@@ -1,0 +1,22 @@
+name: falsify
+version: "1.0.0"
+description: >-
+  Falsify proves a fix with a negative control before Hermes can call it done.
+  It re-runs the test command itself and runs it again on the pre-change tree
+  with the new tests overlaid. Only red without the fix and green with it counts.
+author: shahaman098
+license: MIT
+homepage: https://github.com/shahaman098/hermes-falsify
+tags: [testing, verification, git, reliability]
+provides_tools:
+  - falsify_check
+  - falsify_status
+  - falsify_certificate
+  - falsify_history
+  - falsify_explain
+provides_hooks:
+  - pre_tool_call
+  - post_tool_call
+  - pre_verify
+  - transform_llm_output
+  - on_session_end
