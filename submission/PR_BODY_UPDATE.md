@@ -11,7 +11,7 @@
 - **Network:** none. No telemetry. No API keys required.
 - **Credentials:** does not read `.env`, `auth.json`, or external credential stores.
 
-**Validation:** 25 unit tests, `python3 demo.py` and the plugin-manager demo run at the pinned `<NEW_PIN_SHA>`. `hermes plugins validate` was run on `6bff19441bd64e6337a6cb7f955f62a3aea46ecb`; the delta to the pin is one veto-message string and the re-cut video. Catalog CI validates the pin itself.
+**Validation:** 25 unit tests, `python3 demo.py` and the plugin-manager demo run at the pinned `339fde590c58eab3137fdbb94bec39a88b9b3baa`. `hermes plugins validate` was run on `6bff19441bd64e6337a6cb7f955f62a3aea46ecb`; the delta to the pin is one veto-message string and the re-cut video. Catalog CI validates the pin itself.
 
-**Demo:** https://github.com/shahaman098/hermes-redgreen/blob/<NEW_PIN_SHA>/redgreen-demo.mp4 (~85s). Offline repro: `python3 demo.py`.
+**Demo:** https://github.com/shahaman098/hermes-redgreen/blob/339fde590c58eab3137fdbb94bec39a88b9b3baa/redgreen-demo.mp4 (~88s). Offline repro: `python3 demo.py`.
 

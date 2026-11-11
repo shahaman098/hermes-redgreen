@@ -1,19 +1,18 @@
 # X post
 
-Attach: `~/Desktop/redgreen-demo.mp4` (~85 s, re-cut with the AST tamper act). Tag `@NousResearch`. The compose intent is open, but X is not logged in
-in Chrome; sign in first. Then attach the video and post.
+Attach: `~/Desktop/redgreen-demo.mp4` (88 s, under the 90 s limit). X is not logged in in Chrome; sign in first.
 
-## Main post (277 characters, attach the video)
+## Main post (259 characters, attach the video)
 
 Hermes agents say "fixed, all tests pass." The suite passed before the fix too.
 
-RedGreen proves a fix with a negative control: it re-runs the test itself, then again on the pre-change tree. Red before, green after, or the reply is stamped UNPROVEN.
+RedGreen proves a fix with a negative control: it re-runs the tests on the pre-change tree. Red before, green after, or the reply is stamped UNPROVEN.
 
 @NousResearch #HermesAgent
 
-## Reply with the proof
+## Reply with the proof (239 characters, the link counts as 23)
 
-The receipt, not the transcript: both runs, exit codes, output hashes and a SHA-256 certificate. A green suite on both
-sides reads UNPROVEN. A test weakened to `assert True` reads TAMPERED, caught from the AST.
+Also caught: tests rewritten to assert True (found via the AST, so the assertion count never gives it away). 30/30 tampering attempts caught, 0 false alarms, on 50 synthetic scenarios.
 
+Zero deps, local, no API key.
 github.com/shahaman098/hermes-redgreen
