@@ -9,6 +9,8 @@ is parked at `../hermes-falsify-parked`; nothing from it is submitted.
 - 25 tests pass. The plugin loads and runs in the real Hermes plugin manager.
 - New video: `~/Desktop/redgreen-demo.mp4` (88 s) and `redgreen-demo.srt`.
 
+Platform list: `submission/PLATFORMS.md` (only **GitHub catalog PR + X + Typeform**; no Devpost).
+
 ## Still on you, in order
 1. ~~Commit and push (pin `339fde5`)~~ done.
 2. Catalog PR #153734: bump on fork branch `catalog-redgreen` (yaml + PR body from `submission/PR_BODY_UPDATE.md`) — agent pushes fork; you confirm CI.
