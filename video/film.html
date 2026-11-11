@@ -63,6 +63,13 @@
   #shine { position:absolute; top:-50%; width:240px; height:200%; background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent); transform:rotate(18deg); }
   #certHead { position:absolute; top:28px; left:0; right:0; text-align:center; font-family:'JetBrains Mono'; font-size:22px; letter-spacing:8px; color:var(--green); }
 
+  #host { inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #hostHead { font-family:'JetBrains Mono'; font-size:22px; letter-spacing:7px; color:var(--gold); margin-bottom:30px; }
+  #hostTerm { width:1360px; height:640px; background:#0f0f18; border:1px solid var(--line); border-radius:18px; box-shadow:0 40px 120px rgba(0,0,0,.7), 0 0 80px rgba(255,215,0,.08); overflow:hidden; position:relative; }
+  #hostBar { height:48px; display:flex; align-items:center; gap:10px; padding:0 20px; border-bottom:1px solid var(--line); background:#141424; }
+  #hostTitle { margin-left:16px; font-family:'JetBrains Mono'; font-size:16px; color:var(--muted); }
+  #hostBody { position:absolute; left:34px; right:34px; top:76px; font-family:'JetBrains Mono'; font-size:25px; line-height:1.85; }
+  .hl { white-space:pre-wrap; } .hl.host { color:var(--cyan); } .hl.agent { color:var(--amber); } .hl.veto { color:var(--red); font-weight:600; } .hl.proof { color:var(--green); font-weight:700; }
   #cardScene { inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; perspective:1800px; }
   #cardHead { position:absolute; top:50px; left:0; right:0; text-align:center; font-family:'JetBrains Mono'; font-size:22px; letter-spacing:8px; color:var(--gold); }
   #cardWrap2 { width:1200px; height:630px; position:relative; border-radius:22px; overflow:hidden; box-shadow:0 60px 160px rgba(0,0,0,.8), 0 0 90px rgba(255,215,0,.12); margin-top:-40px; }
@@ -126,9 +133,9 @@
 
 <div id="stamp" class="abs"></div>
 
-<div id="cert" class="abs">
-  <div id="certHead">THE RECEIPT, NOT THE TRANSCRIPT</div>
-  <div id="certWrap"><img id="certImg" alt=""><div id="shine"></div></div>
+<div id="host" class="abs">
+  <div id="hostHead">INSIDE HERMES · REAL PLUGIN MANAGER · SCRIPTED AGENT</div>
+  <div id="hostTerm"><div id="hostBar"><div class="dot" style="background:#ff6b6b"></div><div class="dot" style="background:#ffb454"></div><div class="dot" style="background:#34d27b"></div><div id="hostTitle">hermes · plugin hooks · redgreen</div></div><div id="hostBody"></div></div>
 </div>
 
 <div id="cardScene" class="abs">
@@ -164,7 +171,7 @@ const lerp = (a, b, k) => a + (b - a) * k;
 function show(el, o, tf) { el.style.opacity = o; el.style.display = o <= 0.001 ? 'none' : ''; if (tf !== undefined) el.style.transform = tf; }
 const sentAt = (id, k) => { const a = SENT[id]; return a[Math.min(k, a.length - 1)]; };
 
-let D, SC = {}, SENT = {}, TOTAL = 0, LINES = [];
+let D, SC = {}, SENT = {}, TOTAL = 0, LINES = [], HLINES = [];
 
 function init(data) {
   D = data; TOTAL = data.total;
@@ -203,7 +210,8 @@ function init(data) {
   ];
   const dc = $('diffCode');
   rows.forEach((r, i) => { const d = document.createElement('div'); d.className = 'cl ' + r[0]; d.id = 'dl' + i; d.textContent = r[1].length > 46 ? r[1].slice(0, 45) + '…' : r[1]; dc.appendChild(d); });
-  $('certImg').src = data.cert_img; $('cardImg').src = data.card_img;
+  $('cardImg').src = data.card_img;
+  const hb = $('hostBody'); data.host.forEach(([cls, text], i) => { const d = document.createElement('div'); d.className = 'hl ' + cls; hb.appendChild(d); HLINES.push({ el: d, text, i }); });
 }
 
 function typeOut(text, t, at, cps) { const n = Math.floor((t - at) * cps); return n >= text.length ? text : text.slice(0, Math.max(0, n)); }
@@ -228,7 +236,7 @@ function setRun(prefix, green, summary, k) {
 }
 
 function renderAt(t) {
-  const H = SC.hook, Ho = SC.hollow, Ta = SC.tamper, Pv = SC.proven, Ce = SC.cert, Ca = SC.card, Ou = SC.outro;
+  const H = SC.hook, Ho = SC.hollow, Ta = SC.tamper, Pv = SC.proven, Ce = SC.host, Ca = SC.card, Ou = SC.outro;
   const R = D.runs;
   $('bg').style.backgroundPosition = `${t * 9}px ${t * 5}px`;
   $('glowR').style.transform = `translate(${Math.sin(t * .21) * 120}px, ${Math.cos(t * .17) * 80}px)`;
@@ -319,16 +327,15 @@ function renderAt(t) {
   const sh = (t >= sT && t < sT + .6) ? (1 - P(t, sT, .6)) : 0;
   $('term').style.transform = `translateX(${Math.sin(t * 90) * 10 * sh}px)`;
 
-  // ---- certificate
-  const cIn = P(t, Ce.start - .2, 1.1), cOut = P(t, Ca.start - .3, .5);
-  const co = Math.min(eo(cIn), 1 - cOut);
-  show($('cert'), co);
-  if (co > 0) {
-    const k = eo(cIn);
-    $('certWrap').style.transform = `rotateX(${(1 - k) * 35}deg) rotateY(${Math.sin(t * .5) * 2.5}deg) translateY(${(1 - k) * 120}px) scale(${lerp(.82, 1, k) + (t - Ce.start) * .004 + cOut * .1})`;
-    $('certImg').style.marginTop = (-clamp((t - Ce.start - 1.2) / 5.5) * 130) + 'px';
-    $('shine').style.left = lerp(-400, 1500, P(t, Ce.start + .9, 1.6)) + 'px';
-    $('certHead').style.opacity = eo(P(t, Ce.start + .3, .6));
+  // ---- inside Hermes (real plugin hooks)
+  const hIn2 = P(t, Ce.start - .2, .8), hOut2 = P(t, Ca.start - .3, .5);
+  const ho = Math.min(eo(hIn2), 1 - hOut2);
+  show($('host'), ho, `translateY(${(1 - eo(hIn2)) * 40}px) scale(${lerp(.95, 1, eo(hIn2)) + hOut2 * .05})`);
+  if (ho > 0) {
+    const s0 = sentAt('host', 0), s1 = sentAt('host', 1);
+    const at = [s0 + .2, s0 + .9, s0 + 1.5, s0 + 2.6, s0 + 3.1, s0 + 3.4, s1 + .1, s1 + .8, s1 + 2.2];
+    HLINES.forEach((L) => { const a2 = at[L.i]; if (t < a2) { L.el.style.display = 'none'; return; }
+      L.el.style.display = ''; const k = eo(P(t, a2, .3)); L.el.style.opacity = k; L.el.style.transform = `translateX(${(1 - k) * -18}px)`; L.el.textContent = L.text; });
   }
 
   // ---- ledger + proof card

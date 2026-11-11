@@ -1,83 +1,87 @@
 1
-00:00:00,600 --> 00:00:03,373
+00:00:00,600 --> 00:00:04,497
 Your agent says: fixed, all tests pass.
 
 2
-00:00:03,173 --> 00:00:06,605
+00:00:04,297 --> 00:00:07,348
 But what if the suite passed before the fix, too?
 
 3
-00:00:06,955 --> 00:00:08,403
+00:00:07,698 --> 00:00:09,397
 Here's a real run.
 
 4
-00:00:08,203 --> 00:00:11,799
+00:00:09,197 --> 00:00:12,304
 The agent adds a test, and everything goes green.
 
 5
-00:00:11,599 --> 00:00:16,027
+00:00:12,104 --> 00:00:16,099
 RedGreen runs the same command again, on the pre-change tree.
 
 6
-00:00:15,827 --> 00:00:20,948
+00:00:15,899 --> 00:00:21,319
 Still green. The test proves nothing, so the claim is stamped unproven.
 
 7
-00:00:21,298 --> 00:00:23,540
+00:00:21,669 --> 00:00:23,978
 So the agent takes a shortcut.
 
 8
-00:00:23,340 --> 00:00:26,672
+00:00:23,778 --> 00:00:27,127
 It rewrites its old assertions to assert True.
 
 9
-00:00:26,472 --> 00:00:30,825
+00:00:26,927 --> 00:00:31,195
 The assertion count never moves, so a text counter misses it.
 
 10
-00:00:30,625 --> 00:00:37,566
+00:00:30,995 --> 00:00:37,705
 RedGreen reads the syntax tree, finds two assertions weakened to constants, and stamps it tampered.
 
 11
-00:00:37,916 --> 00:00:40,094
+00:00:38,055 --> 00:00:39,768
 Now the honest version.
 
 12
-00:00:39,894 --> 00:00:42,072
+00:00:39,568 --> 00:00:41,628
 A real regression test.
 
 13
-00:00:41,872 --> 00:00:46,458
+00:00:41,428 --> 00:00:45,307
 Without the fix, it fails. With the fix, it passes.
 
 14
-00:00:46,258 --> 00:00:49,726
+00:00:45,107 --> 00:00:48,704
 Red before, green after. That's proof.
 
 15
-00:00:50,076 --> 00:00:57,753
-Every proof is a certificate: both runs, exit codes, output hashes, and a SHA-256 seal.
+00:00:49,054 --> 00:00:52,844
+Inside Hermes, the same engine runs as a plugin.
 
 16
-00:00:58,103 --> 00:01:00,712
-It keeps a double-entry ledger too.
+00:00:52,644 --> 00:00:58,960
+The pre-verify hook vetoes the claim, and once it is proven, the reply carries a proof badge.
 
 17
-00:01:00,512 --> 00:01:06,012
-Every changed file is a debit, and only a proven negative control settles it.
+00:00:59,310 --> 00:01:02,985
+Every proof is a certificate with a double-entry ledger.
 
 18
-00:01:05,812 --> 00:01:08,009
-Then it exports a share card.
+00:01:02,785 --> 00:01:08,112
+Every changed file is a debit, and only a proven negative control settles it.
 
 19
-00:01:08,359 --> 00:01:09,218
-RedGreen.
+00:01:07,912 --> 00:01:10,377
+It even exports a share card.
 
 20
-00:01:09,018 --> 00:01:19,405
-On fifty synthetic scenarios, the AST guard caught thirty of thirty tampering attempts, with no false alarms. A text counter caught twenty.
+00:01:10,727 --> 00:01:12,439
+RedGreen.
 
 21
-00:01:19,205 --> 00:01:22,630
+00:01:12,239 --> 00:01:23,040
+On fifty synthetic scenarios, the AST guard caught thirty of thirty tampering attempts, with no false alarms. A text counter caught twenty.
+
+22
+00:01:22,840 --> 00:01:25,370
 Zero dependencies. Runs locally, no API key.

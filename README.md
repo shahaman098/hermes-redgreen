@@ -12,7 +12,7 @@ trust it. It re-runs the command itself, twice.
 
 ![RedGreen certificate](assets/certificate.png)
 
-[85-second demo video](redgreen-demo.mp4) · [banner](assets/banner.png)
+[88-second demo video](redgreen-demo.mp4) · [banner](assets/banner.png)
 
 ## The problem: a passing suite is not proof
 

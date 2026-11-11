@@ -30,6 +30,32 @@ def duration(path: Path) -> float:
     return float(out.decode().strip())
 
 
+def sentence_starts(audio: Path, dur: float, parts: list[str]) -> list[float]:
+    """Where each sentence begins in the clip, from the audio's own pauses.
+
+    The n-1 longest internal pauses are the sentence breaks. If that disagrees badly with a
+    character-proportional estimate, fall back to the estimate.
+    """
+    total = sum(len(x) for x in parts)
+    est, acc = [], 0.0
+    for x in parts:
+        est.append(dur * acc / total)
+        acc += len(x)
+    if len(parts) == 1:
+        return [0.0]
+    out = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-i", str(audio), "-af", "silencedetect=noise=-38dB:d=0.12", "-f", "null", "-"],
+        capture_output=True, text=True).stderr
+    starts = [float(m) for m in re.findall(r"silence_start: ([\d.]+)", out)]
+    ends = [float(m) for m in re.findall(r"silence_end: ([\d.]+)", out)]
+    pauses = [(e - st, e) for st, e in zip(starts, ends) if st > 0.3 and e < dur - 0.2]
+    bounds = [0.0]
+    for i in range(1, len(parts)):
+        near = [(abs(e - est[i]) - 0.5 * ln, e) for ln, e in pauses if abs(e - est[i]) <= 1.3 and e > bounds[-1] + 0.4]
+        bounds.append(min(near)[1] if near else est[i])
+    return bounds
+
+
 def timeline() -> dict:
     scenes = json.loads((DEMO / "script.json").read_text())
     t = LEAD
@@ -38,12 +64,12 @@ def timeline() -> dict:
         audio = BUILD / "audio" / f"{s['id']}.mp3"
         d = duration(audio)
         parts = s["sentences"]
-        total_chars = sum(len(p) for p in parts)
-        cur, sents = t, []
-        for p in parts:
-            span = d * len(p) / total_chars
-            sents.append({"text": p, "start": round(cur, 3), "end": round(cur + span, 3)})
-            cur += span
+        bounds = sentence_starts(audio, d, parts)   # seconds inside the clip where each sentence begins
+        sents = []
+        for i, part in enumerate(parts):
+            a = t + bounds[i]
+            b = t + (bounds[i + 1] if i + 1 < len(parts) else d)
+            sents.append({"text": part, "start": round(a, 3), "end": round(b, 3)})
         out.append({"id": s["id"], "start": t, "audio_dur": d, "audio": str(audio), "sentences": sents})
         t += d + GAP
     total = t - GAP + TAIL
@@ -54,11 +80,11 @@ def main() -> int:
     stills = "--stills" in sys.argv
     run = json.loads((BUILD / "rg_run.json").read_text())
     import base64
-    cert = "data:image/png;base64," + base64.b64encode((BUILD / "certificate.png").read_bytes()).decode()
     tl = timeline()
     card = "data:image/png;base64," + base64.b64encode((BUILD / "card.png").read_bytes()).decode()
-    data = {**tl, "transcript": run["transcript"], "runs": run["runs"], "cert_img": cert, "card_img": card}
-    (BUILD / "timeline.json").write_text(json.dumps({k: v for k, v in data.items() if k not in ("cert_img", "card_img")}, indent=2))
+    host = json.loads((BUILD / "host_run.json").read_text())
+    data = {**tl, "host": host, "transcript": run["transcript"], "runs": run["runs"], "card_img": card}
+    (BUILD / "timeline.json").write_text(json.dumps({k: v for k, v in data.items() if k not in ("card_img",)}, indent=2))
     print(f"total {tl['total']:.2f}s")
 
     from playwright.sync_api import sync_playwright

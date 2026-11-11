@@ -34,17 +34,18 @@
   ]
  },
  {
-  "id": "cert",
+  "id": "host",
   "sentences": [
-   "Every proof is a certificate: both runs, exit codes, output hashes, and a SHA-256 seal."
+   "Inside Hermes, the same engine runs as a plugin.",
+   "The pre-verify hook vetoes the claim, and once it is proven, the reply carries a proof badge."
   ]
  },
  {
   "id": "card",
   "sentences": [
-   "It keeps a double-entry ledger too.",
+   "Every proof is a certificate with a double-entry ledger.",
    "Every changed file is a debit, and only a proven negative control settles it.",
-   "Then it exports a share card."
+   "It even exports a share card."
   ]
  },
  {
